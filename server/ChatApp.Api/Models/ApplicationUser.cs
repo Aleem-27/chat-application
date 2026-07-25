@@ -1,6 +1,11 @@
-﻿namespace ChatApp.Api.Models
+﻿using Microsoft.AspNetCore.Identity;
+
+namespace ChatApp.Api.Models;
+
+public class ApplicationUser : IdentityUser
 {
-  public class ApplicationUser
-  {
-  }
+  public string DisplayName { get; set; } = string.Empty;
+  public string? AvatarUrl { get; set; }
+  public bool IsOnline { get; set; }
+  public DateTime? LastSeenAt { get; set; }
 }
