@@ -122,12 +122,13 @@ public class AuthController : ControllerBase
   [HttpGet("me")]
   public async Task<IActionResult> Me()
   {
-    var user = await _userManager.GetUserAsync(User);
+    var userId = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+    if (userId is null)
+      return Unauthorized();
 
+    var user = await _userManager.FindByIdAsync(userId);
     if (user is null)
-    {
-      return NotFound(new { message = "User not found" });
-    }
+      return Unauthorized();
 
     return Ok(MapToUserResponse(user));
   }
