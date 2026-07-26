@@ -1,8 +1,10 @@
 using ChatApp.Api.Data;
+using ChatApp.Api.Hubs;
 using ChatApp.Api.Models;
 using ChatApp.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -11,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -23,6 +26,17 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddSingleton<IUserConnectionTracker, UserConnectionTracker>();
+builder.Services.AddSingleton<IUserIdProvider, JwtUserIdProvider>();
+
+builder.Services.AddCors(options =>
+{
+  options.AddPolicy("ClientApp", policy =>
+    policy.WithOrigins("https://localhost:5173")
+      .AllowAnyHeader()
+      .AllowAnyMethod()
+      .AllowCredentials());
+});
 
 builder.Services.AddAuthentication(options =>
 {
@@ -68,8 +82,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("ClientApp");
+app.UseAuthentication();
 app.UseAuthorization();
-app.UseAuthorization();
+
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
