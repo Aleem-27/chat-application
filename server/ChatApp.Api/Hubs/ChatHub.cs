@@ -87,7 +87,7 @@ public class ChatHub : Hub
     await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(groupId));
   }
 
-  public async Task SendMessage(SendMessageDto dto)
+  public async Task SendMessage(SendMessageDTO dto)
   {
     var isMember = await _db.GroupMembers.AnyAsync(gm => gm.GroupId == dto.GroupId && gm.UserId == UserId);
 
@@ -108,7 +108,7 @@ public class ChatHub : Hub
 
     var sender = await _db.Users.FindAsync(UserId);
 
-    var response = new MessageResponseDto
+    var response = new MessageResponseDTO
     {
       Id = message.Id,
       GroupId = message.GroupId,
