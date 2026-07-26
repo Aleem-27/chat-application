@@ -90,17 +90,25 @@ public class ChatHub : Hub
   public async Task SendMessage(SendMessageDTO dto)
   {
     var isMember = await _db.GroupMembers.AnyAsync(gm => gm.GroupId == dto.GroupId && gm.UserId == UserId);
-
     if (!isMember)
     {
       throw new HubException("You are not a member of this group.");
+    }
+
+    if (string.IsNullOrWhiteSpace(dto.Content) && string.IsNullOrWhiteSpace(dto.FileUrl))
+    {
+      throw new HubException("A message needs either content or a file.");
     }
 
     var message = new Message
     {
       GroupId = dto.GroupId,
       SenderId = UserId,
-      Content = dto.Content
+      Content = dto.Content,
+      FileUrl = dto.FileUrl,
+      FileName = dto.FileName,
+      FileSizeBytes = dto.FileSizeBytes,
+      FileContentType = dto.FileContentType
     };
 
     _db.Messages.Add(message);
@@ -115,10 +123,54 @@ public class ChatHub : Hub
       Content = message.Content,
       SentAt = message.SentAt,
       SenderId = UserId,
-      SenderDisplayName = sender?.DisplayName ?? string.Empty
+      SenderDisplayName = sender?.DisplayName ?? string.Empty,
+      FileUrl = message.FileUrl,
+      FileName = message.FileName,
+      FileSizeBytes = message.FileSizeBytes,
+      FileContentType = message.FileContentType
     };
 
     await Clients.Group(GroupName(dto.GroupId)).SendAsync("ReceiveMessage", response);
+  }
+
+  public async Task MarkAsRead(int messageId)
+  {
+    var message = await _db.Messages.FindAsync(messageId);
+    if (message is null)
+    {
+      throw new HubException("Message not found.");
+    }
+
+    var isMember = await _db.GroupMembers.AnyAsync(gm => gm.GroupId == message.GroupId && gm.UserId == UserId);
+    if (!isMember)
+    {
+      throw new HubException("You are not a member of this group.");
+    }
+
+    var alreadyRead = await _db.MessageReadReceipts.AnyAsync(rr => rr.MessageId == messageId && rr.UserId == UserId);
+
+    if (alreadyRead)
+    {
+      return;
+    }
+
+    var receipt = new MessageReadReceipt
+    {
+      MessageId = messageId,
+      UserId = UserId
+    };
+
+    _db.MessageReadReceipts.Add(receipt);
+    await _db.SaveChangesAsync();
+
+    var dto = new ReadReceiptDTO
+    {
+      MessageId = messageId,
+      UserId = UserId,
+      ReadAt = receipt.ReadAt
+    };
+
+    await Clients.Group(GroupName(message.GroupId)).SendAsync("MessageRead", dto);
   }
 
   public async Task Typing(int groupId)
