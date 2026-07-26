@@ -1,6 +1,6 @@
 ﻿namespace ChatApp.Api.DTOs;
 
-public class MessageResponseDto
+public class MessageResponseDTO
 {
   public int Id { get; set; }
   public int GroupId { get; set; }
@@ -10,4 +10,6 @@ public class MessageResponseDto
   public string SenderDisplayName { get; set; } = string.Empty;
   public string? FileUrl { get; set; }
   public string? FileName { get; set; }
+  public long? FileSizeBytes { get; set; }
+  public string? FileContentType { get; set; }
 }
