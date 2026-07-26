@@ -167,4 +167,85 @@ public class GroupsController : ControllerBase
       Members = members
     };
   }
+
+  [HttpPost("{id}/members")]
+  public async Task<IActionResult> AddMember(int id, AddMemberDTO dto)
+  {
+    var requesterRole = await _db.GroupMembers
+        .Where(gm => gm.GroupId == id && gm.UserId == UserId)
+        .Select(gm => (GroupMemberRole?)gm.Role)
+        .FirstOrDefaultAsync();
+
+    if (requesterRole is null)
+    {
+      return Forbid();
+    }
+
+    if (requesterRole != GroupMemberRole.Admin)
+    {
+      return Forbid();
+    }
+
+    var group = await _db.Groups.FindAsync(id);
+    if (group is null)
+    {
+      return NotFound();
+    }
+
+    if (group.IsDirectMessage)
+    {
+      return BadRequest(new { message = "Cannot add members to a direct message." });
+    }
+
+    var targetExists = await _db.Users.AnyAsync(u => u.Id == dto.UserId);
+    if (!targetExists)
+    {
+      return NotFound(new { message = "Target user not found." });
+    }
+
+    var alreadyMember = await _db.GroupMembers.AnyAsync(gm => gm.GroupId == id && gm.UserId == dto.UserId);
+    if (alreadyMember)
+    {
+      return Conflict(new { message = "User is already a member of this group." });
+    }
+
+    _db.GroupMembers.Add(new GroupMember
+    {
+      GroupId = id,
+      UserId = dto.UserId,
+      Role = GroupMemberRole.Member
+    });
+
+    await _db.SaveChangesAsync();
+
+    return Ok(await BuildGroupResponse(id));
+  }
+
+  [HttpDelete("{id}/members/{userId}")]
+  public async Task<IActionResult> RemoveMember(int id, string userId)
+  {
+    if (userId != UserId)
+    {
+      var requesterRole = await _db.GroupMembers
+          .Where(gm => gm.GroupId == id && gm.UserId == UserId)
+          .Select(gm => (GroupMemberRole?)gm.Role)
+          .FirstOrDefaultAsync();
+
+      if (requesterRole != GroupMemberRole.Admin)
+      {
+        return Forbid();
+      }
+    }
+
+    var membership = await _db.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && gm.UserId == userId);
+    if (membership is null)
+    {
+      return NotFound();
+    }
+
+    _db.GroupMembers.Remove(membership);
+    await _db.SaveChangesAsync();
+
+    return NoContent();
+  }
 }
