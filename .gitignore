@@ -33,3 +33,7 @@ Thumbs.db
 *.pfx
 *.key
 .env
+
+# ===== Uploaded files (user content, not source) =====
+server/ChatApp.Api/wwwroot/uploads/*
+!server/ChatApp.Api/wwwroot/uploads/.gitkeep
