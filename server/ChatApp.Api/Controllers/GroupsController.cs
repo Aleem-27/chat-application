@@ -248,4 +248,42 @@ public class GroupsController : ControllerBase
 
     return NoContent();
   }
+
+  [HttpGet("{id}/messages")]
+  public async Task<IActionResult> GetMessages(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+  {
+    var isMember = await _db.GroupMembers.AnyAsync(gm => gm.GroupId == id && gm.UserId == UserId);
+    if (!isMember)
+    {
+      return Forbid();
+    }
+
+    pageSize = Math.Clamp(pageSize, 1, 100);
+    page = Math.Max(page, 1);
+
+    var messages = await _db.Messages
+        .Where(m => m.GroupId == id && !m.IsDeleted)
+        .OrderByDescending(m => m.SentAt)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .Include(m => m.Sender)
+        .Select(m => new MessageResponseDTO
+        {
+          Id = m.Id,
+          GroupId = m.GroupId,
+          Content = m.Content,
+          SentAt = m.SentAt,
+          SenderId = m.SenderId,
+          SenderDisplayName = m.Sender.DisplayName,
+          FileUrl = m.FileUrl,
+          FileName = m.FileName,
+          FileSizeBytes = m.FileSizeBytes,
+          FileContentType = m.FileContentType
+        })
+        .ToListAsync();
+
+    messages.Reverse();
+
+    return Ok(messages);
+  }
 }
