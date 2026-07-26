@@ -85,6 +85,7 @@ app.UseHttpsRedirection();
 app.UseCors("ClientApp");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseStaticFiles();
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
