@@ -2,7 +2,7 @@ import axios, { isAxiosError, type InternalAxiosRequestConfig } from 'axios'
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL + '/api',
-  withCredentials: true, // send/receive the HttpOnly auth cookies
+  withCredentials: true,
 })
 
 interface RetryableConfig extends InternalAxiosRequestConfig {
@@ -30,8 +30,6 @@ apiClient.interceptors.response.use(
 
     originalRequest._retry = true
 
-    // If a refresh is already in flight, queue this request instead of
-    // firing a second concurrent refresh call (a "refresh stampede").
     if (isRefreshing) {
       return new Promise((resolve) => {
         pendingRequests.push(() => resolve(apiClient(originalRequest)))
