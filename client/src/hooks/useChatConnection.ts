@@ -14,6 +14,7 @@ export function useChatConnection() {
   useEffect(() => {
     if (!user) return
 
+    let ignore = false
     const connection = createHubConnection()
     connectionRef.current = connection
 
@@ -26,13 +27,17 @@ export function useChatConnection() {
 
     connection
       .start()
-      .then(() => setState(HubConnectionState.Connected))
+      .then(() => {
+        if (!ignore) setState(HubConnectionState.Connected)
+      })
       .catch((err: unknown) => {
+        if (ignore) return
         console.error('SignalR connection failed:', err)
         setState(HubConnectionState.Disconnected)
       })
 
     return () => {
+      ignore = true
       void connection.stop()
       connectionRef.current = null
     }
