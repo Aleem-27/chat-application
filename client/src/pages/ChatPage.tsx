@@ -1,7 +1,17 @@
+import { ChatConnectionProvider } from '@/lib/chatConnectionContext'
+import { Sidebar } from '@/components/chat/Sidebar'
+
 export default function ChatPage() {
   return (
-    <div className="flex h-screen items-center justify-center bg-canvas">
-      <p className="font-display text-2xl text-ink">Chat shell coming soon...</p>
-    </div>
+    <ChatConnectionProvider>
+      <div className="flex h-screen bg-canvas">
+        <Sidebar />
+        <main className="flex flex-1 items-center justify-center">
+          <p className="font-display text-2xl text-ink-soft">
+            Select a conversation to start chatting
+          </p>
+        </main>
+      </div>
+    </ChatConnectionProvider>
   )
 }
