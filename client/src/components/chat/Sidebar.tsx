@@ -10,7 +10,12 @@ function otherMember(group: Group, currentUserId: string) {
   return group.members.find((m) => m.userId !== currentUserId)
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  selectedGroupId: number | null
+  onSelectGroup: (groupId: number) => void
+}
+
+export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
   const { data: user } = useCurrentUser()
   const { data: groups, isLoading } = useGroups()
   const logout = useLogout()
@@ -38,7 +43,10 @@ export function Sidebar() {
           return (
             <button
               key={group.id}
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-white/10"
+              onClick={() => onSelectGroup(group.id)}
+              className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-white/10 ${
+                group.id === selectedGroupId ? 'bg-white/10' : ''
+              }`}
             >
               <span className="relative">
                 <Avatar name={displayName} size="sm" />
