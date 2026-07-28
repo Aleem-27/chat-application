@@ -31,7 +31,7 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
           (new Date(message.sentAt).getTime() - new Date(previous.sentAt).getTime()) / 60000 
             GROUP_GAP_MINUTES
 
-        const showTime = !previous || formatTime(message.sentAt) !== formatTime(previous.sentAt)
+        const showTime = !previous || previous.senderId !== message.senderId || formatTime(message.sentAt) !== formatTime(previous.sentAt)
 
         if (isOwn) {
           return (
