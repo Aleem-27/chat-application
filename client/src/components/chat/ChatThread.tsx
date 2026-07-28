@@ -34,6 +34,7 @@
       ? group.members.find((m) => m.userId !== user?.id)
       : undefined
     const title = group.isDirectMessage ? (otherMember?.displayName ?? group.name) : group.name
+    const readBy = useReadReceipts(connection, group.id, messages, user?.id)
 
     return (
       <div className="flex h-full flex-1 flex-col">
@@ -44,7 +45,7 @@
         {isLoading || !user ? (
           <div className="flex flex-1 items-center justify-center text-ink-soft">Loading messages…</div>
         ) : (
-          <MessageList messages={messages ?? []} currentUserId={user.id} />
+          <MessageList messages={messages ?? []} currentUserId={user.id} members={group.members} readBy={readBy}/>
         )}
 
         <TypingIndicator typingUserIds={typingUserIds} members={group.members} />
