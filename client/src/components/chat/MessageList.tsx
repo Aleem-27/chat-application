@@ -31,6 +31,8 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
           (new Date(message.sentAt).getTime() - new Date(previous.sentAt).getTime()) / 60000 
             GROUP_GAP_MINUTES
 
+        const showTime = !previous || formatTime(message.sentAt) !== formatTime(previous.sentAt)
+
         if (isOwn) {
           return (
             <div key={message.id} className={`flex justify-end ${isGrouped ? 'mt-0.5' : 'mt-3'}`}>
@@ -38,9 +40,11 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
                 <div className="rounded-2xl rounded-br-sm bg-accent px-4 py-2 text-white">
                   {message.content}
                 </div>
-                <p className="mt-1 text-right font-mono text-[11px] text-ink-soft">
-                  {formatTime(message.sentAt)}
-                </p>
+                {showTime && (
+                  <p className="mt-1 text-right font-mono text-[11px] text-ink-soft">
+                    {formatTime(message.sentAt)}
+                  </p>
+                )}
               </div>
             </div>
           )
@@ -54,7 +58,9 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
             <div className="flex max-w-md flex-col border-l-2 border-line pl-3">
               {!isGrouped && <p className="text-sm font-medium text-ink">{message.senderDisplayName}</p>}
               <p className="text-ink">{message.content}</p>
-              <p className="mt-1 font-mono text-[11px] text-ink-soft">{formatTime(message.sentAt)}</p>
+              {showTime && (
+                <p className="mt-1 font-mono text-[11px] text-ink-soft">{formatTime(message.sentAt)}</p>
+              )}
             </div>
           </div>
         )
