@@ -10,9 +10,9 @@ namespace ChatApp.Api.Controllers;
 public class FilesController : ControllerBase
 {
   private static readonly string[] AllowedExtensions =
-      { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".txt", ".zip", ".docx", ".xlsx" };
+    { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".txt", ".zip", ".docx", ".xlsx", ".mp4", ".webm", ".mov", ".avi"};
 
-  private const long MaxFileSizeBytes = 10 * 1024 * 1024; // 10 MB
+  private const long MaxFileSizeBytes = 50 * 1024 * 1024; // 50 MB
 
   private readonly IWebHostEnvironment _env;
 
