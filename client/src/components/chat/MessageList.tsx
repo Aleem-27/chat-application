@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Avatar } from '@/components/shared/Avatar'
 import { ReadReceiptTick } from './ReadReceiptTick'
 import type { GroupMember, Message } from '@/types/chat'
+import { MessageAttachment } from './MessageAttachment'
 
 interface MessageListProps {
   messages: Message[]
@@ -32,8 +33,7 @@ export function MessageList({ messages, currentUserId, members, readBy }: Messag
         const isGrouped =
           !!previous &&
           previous.senderId === message.senderId &&
-          (new Date(message.sentAt).getTime() - new Date(previous.sentAt).getTime()) / 60000 
-            GROUP_GAP_MINUTES
+          (new Date(message.sentAt).getTime() - new Date(previous.sentAt).getTime()) / 60000 < GROUP_GAP_MINUTES
 
         const showTime = !previous || previous.senderId !== message.senderId || formatTime(message.sentAt) !== formatTime(previous.sentAt)
 
@@ -48,7 +48,17 @@ export function MessageList({ messages, currentUserId, members, readBy }: Messag
           return (
             <div key={message.id} className={`flex justify-end ${isGrouped ? 'mt-0.5' : 'mt-3'}`}>
               <div className="max-w-md rounded-2xl rounded-br-sm bg-accent px-4 py-2 text-white">
-                <p>{message.content}</p>
+                {message.fileUrl && message.fileName && message.fileSizeBytes && message.fileContentType && (
+                  <div className="mb-2">
+                    <MessageAttachment
+                      fileUrl={message.fileUrl}
+                      fileName={message.fileName}
+                      fileSizeBytes={message.fileSizeBytes}
+                      fileContentType={message.fileContentType}
+                    />
+                  </div>
+                )}
+                {message.content && <p>{message.content}</p>}
                 <div className="mt-1 flex items-center justify-between gap-3">
                   <ReadReceiptTick read={allRead} />
                   {showTime && (
@@ -69,7 +79,17 @@ export function MessageList({ messages, currentUserId, members, readBy }: Messag
             </div>
             <div className="max-w-md border-l-2 border-line pl-3">
               {!isGrouped && <p className="text-sm font-medium text-ink">{message.senderDisplayName}</p>}
-              <p className="text-ink">{message.content}</p>
+              {message.fileUrl && message.fileName && message.fileSizeBytes && message.fileContentType && (
+                <div className="mb-2">
+                  <MessageAttachment
+                    fileUrl={message.fileUrl}
+                    fileName={message.fileName}
+                    fileSizeBytes={message.fileSizeBytes}
+                    fileContentType={message.fileContentType}
+                  />
+                </div>
+              )}
+              {message.content && <p className="text-ink">{message.content}</p>}
               {showTime && (
                 <div className="mt-1 flex justify-end">
                   <span className="font-mono text-[10px] text-ink-soft">

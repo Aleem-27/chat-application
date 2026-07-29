@@ -8,6 +8,7 @@
   import { MessageInput } from './MessageInput'
   import { TypingIndicator } from './TypingIndicator'
   import type { Group } from '@/types/chat'
+  import type { FileUploadResponse } from '@/types/files'
 
   export function ChatThread({ group }: { group: Group }) {
     const { data: user } = useCurrentUser()
@@ -30,6 +31,21 @@
       })
     }
 
+    function handleSendFile(file: FileUploadResponse) {
+      if (!connection) return
+      connection
+        .invoke('SendMessage', {
+          groupId: group.id,
+          fileUrl: file.fileUrl,
+          fileName: file.fileName,
+          fileSizeBytes: file.fileSizeBytes,
+          fileContentType: file.fileContentType,
+        })
+        .catch((err: unknown) => {
+          console.error('Failed to send file message:', err)
+        })
+    }
+
     const otherMember = group.isDirectMessage
       ? group.members.find((m) => m.userId !== user?.id)
       : undefined
@@ -49,7 +65,7 @@
         )}
 
         <TypingIndicator typingUserIds={typingUserIds} members={group.members} />
-        <MessageInput onSend={handleSend} disabled={!connection} onTyping={notifyTyping} />
+        <MessageInput onSend={handleSend} onSendFile={handleSendFile} onTyping={notifyTyping} disabled={!connection} />
       </div>
     )
   }
