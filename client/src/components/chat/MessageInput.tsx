@@ -1,7 +1,8 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Smile } from 'lucide-react'
 import { useFileUpload } from '@/hooks/useFileUpload'
 import { AttachmentMenu, type AttachmentKind } from './AttachmentMenu'
+import { EmojiPickerPopover } from './EmojiPickerPopover'
 import type { FileUploadResponse } from '@/types/files'
 
 interface MessageInputProps {
@@ -21,7 +22,9 @@ const ACCEPT_BY_KIND: Record<AttachmentKind, string> = {
 export function MessageInput({ onSend, onSendFile, onTyping, disabled }: MessageInputProps) {
   const [content, setContent] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [emojiOpen, setEmojiOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textInputRef = useRef<HTMLInputElement>(null)
   const upload = useFileUpload()
 
   function handleSubmit(event: FormEvent) {
@@ -36,17 +39,39 @@ export function MessageInput({ onSend, onSendFile, onTyping, disabled }: Message
     setMenuOpen(false)
     const input = fileInputRef.current
     if (!input) return
-    input.accept = ACCEPT_BY_KIND[kind] // set just before opening so the OS dialog filters correctly
+    input.accept = ACCEPT_BY_KIND[kind]
     input.click()
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
-    event.target.value = '' // allow re-selecting the same file later
+    event.target.value = ''
     if (!file) return
 
     upload.mutate(file, {
       onSuccess: (result) => onSendFile(result),
+    })
+  }
+
+  function handleEmojiSelect(emoji: string) {
+    const input = textInputRef.current
+    if (!input) {
+      setContent((prev) => prev + emoji)
+      return
+    }
+
+    // Insert at the cursor position rather than always appending to the end,
+    // so picking an emoji mid-sentence doesn't jump it to the back.
+    const start = input.selectionStart ?? content.length
+    const end = input.selectionEnd ?? content.length
+    const next = content.slice(0, start) + emoji + content.slice(end)
+    setContent(next)
+    onTyping()
+
+    requestAnimationFrame(() => {
+      input.focus()
+      const caret = start + emoji.length
+      input.setSelectionRange(caret, caret)
     })
   }
 
@@ -61,7 +86,6 @@ export function MessageInput({ onSend, onSendFile, onTyping, disabled }: Message
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
         <div className="relative">
           {menuOpen && <AttachmentMenu onSelect={openPicker} onClose={() => setMenuOpen(false)} />}
-
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -73,9 +97,25 @@ export function MessageInput({ onSend, onSendFile, onTyping, disabled }: Message
           </button>
         </div>
 
+        <div className="relative">
+          {emojiOpen && (
+            <EmojiPickerPopover onSelect={handleEmojiSelect} onClose={() => setEmojiOpen(false)} />
+          )}
+          <button
+            type="button"
+            onClick={() => setEmojiOpen((open) => !open)}
+            disabled={isBusy}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line text-ink-soft transition-colors hover:bg-accent-tint hover:text-accent disabled:opacity-50"
+            aria-label="Add an emoji"
+          >
+            <Smile size={18} />
+          </button>
+        </div>
+
         <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
 
         <input
+          ref={textInputRef}
           value={content}
           onChange={(e) => {
             setContent(e.target.value)
