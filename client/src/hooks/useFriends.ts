@@ -25,3 +25,11 @@ export function useRespondToRequest() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['friends'] }),
   })
 }
+
+export function useRemoveFriend() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: friendsApi.removeFriend,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['friends'] }),
+  })
+}

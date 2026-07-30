@@ -10,4 +10,5 @@ export const friendsApi = {
     apiClient.post<Friendship>(`/friends/requests/${id}/decline`).then((res) => res.data),
   getFriends: () => apiClient.get<Friendship[]>('/friends').then((res) => res.data),
   getPendingRequests: () => apiClient.get<Friendship[]>('/friends/requests').then((res) => res.data),
+  removeFriend: (id: number) => apiClient.delete(`/friends/${id}`),
 }
