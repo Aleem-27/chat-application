@@ -24,7 +24,7 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
   usePresenceSync(groups)
 
   return (
-    <aside className="flex h-full w-72 flex-col bg-ink text-white md:w-72">
+    <aside className="flex h-full w-full flex-col bg-panel text-white md:w-72">
       <div className="px-5 py-6">
         <h1 className="font-display text-2xl">Converseo</h1>
       </div>
