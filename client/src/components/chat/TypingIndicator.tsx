@@ -15,5 +15,5 @@ export function TypingIndicator({ typingUserIds, members }: TypingIndicatorProps
       ? `${names[0]} is typing…`
       : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} are typing…`
 
-  return <p className="h-6 px-6 text-sm italic text-ink-soft">{label}</p>
+  return <p className="h-6 px-4 text-sm italic text-ink-soft md:px-6">{label}</p>
 }

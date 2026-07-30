@@ -14,7 +14,7 @@ export function EmojiPickerPopover({ onSelect, onClose }: EmojiPickerPopoverProp
   return (
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} />
-      <div className="absolute bottom-full left-0 z-20 mb-2 overflow-hidden rounded-xl border border-line shadow-lg">
+      <div className="absolute bottom-full left-0 z-20 mb-2 w-[min(350px,92vw)] overflow-hidden rounded-xl border border-line shadow-lg">
         <Picker
           data={data}
           onEmojiSelect={(emoji: EmojiDatum) => {

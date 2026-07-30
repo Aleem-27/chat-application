@@ -25,7 +25,7 @@ export function MessageList({ messages, currentUserId, members, readBy }: Messag
   }, [messages])
 
   return (
-    <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-6 py-4">
+    <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4 md:px-6">
       {messages.map((message, index) => {
         const isOwn = message.senderId === currentUserId
         const previous = messages[index - 1]
