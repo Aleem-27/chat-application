@@ -55,6 +55,16 @@ public class GroupsController : ControllerBase
       return BadRequest(new { message = "Cannot start a direct message with yourself." });
     }
 
+    var isFriend = await _db.Friendships.AnyAsync(f =>
+        f.Status == FriendshipStatus.Accepted &&
+        ((f.RequesterId == UserId && f.AddresseeId == dto.TargetUserId) ||
+        (f.RequesterId == dto.TargetUserId && f.AddresseeId == UserId)));
+
+    if (!isFriend)
+    {
+      return Forbid();
+    }
+
     var targetExists = await _db.Users.AnyAsync(u => u.Id == dto.TargetUserId);
     if (!targetExists)
     {
