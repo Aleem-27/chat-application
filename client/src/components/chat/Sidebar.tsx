@@ -7,6 +7,9 @@ import { OnlineDot } from '@/components/shared/OnlineDot'
 import type { Group } from '@/types/chat'
 import { Moon, Sun } from 'lucide-react'
 import { useThemeStore } from '@/store/themeStore'
+import { UserPlus } from 'lucide-react'
+import { AddFriendPanel } from './AddFriendPanel'
+import { useState } from 'react'
 
 function otherMember(group: Group, currentUserId: string) {
   return group.members.find((m) => m.userId !== currentUserId)
@@ -23,14 +26,24 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
   const logout = useLogout()
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds)
   const { theme, toggleTheme } = useThemeStore()
+  const [addFriendOpen, setAddFriendOpen] = useState(false)
 
   usePresenceSync(groups)
 
   return (
     <aside className="flex h-full w-full flex-col border-r border-line bg-panel text-white md:w-72">
-      <div className="px-5 py-6">
+      <div className="flex items-center justify-between px-5 py-6">
         <h1 className="font-display text-2xl">Converseo</h1>
+        <button
+          onClick={() => setAddFriendOpen((open) => !open)}
+          aria-label="Add a friend"
+          className="text-white/60 hover:text-white"
+        >
+          <UserPlus size={18} />
+        </button>
       </div>
+
+      {addFriendOpen && <AddFriendPanel onClose={() => setAddFriendOpen(false)} />}
 
       <nav className="flex-1 overflow-y-auto px-2">
         {isLoading && <p className="px-3 py-2 text-sm text-white/50">Loading conversations…</p>}
