@@ -80,7 +80,7 @@ export function MessageInput({ onSend, onSendFile, onTyping, disabled }: Message
   return (
     <div className="border-t border-line bg-surface px-4 py-3 md:px-6 md:py-4">
       {upload.isError && (
-        <p className="mb-2 text-sm text-red-600">Upload failed. Try a smaller file or a different type.</p>
+        <p className="mb-2 text-sm text-danger">Upload failed. Try a smaller file or a different type.</p>
       )}
 
       <form onSubmit={handleSubmit} className="flex items-center gap-2">

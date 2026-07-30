@@ -48,7 +48,7 @@ export function LoginForm() {
       </div>
 
       {login.isError && (
-        <p className="text-sm text-red-600">{getErrorMessage(login.error)}</p>
+        <p className="text-sm text-danger">{getErrorMessage(login.error)}</p>
       )}
 
       <button

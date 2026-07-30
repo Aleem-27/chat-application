@@ -64,7 +64,7 @@ export function RegisterForm() {
       </div>
 
       {register.isError && (
-        <p className="text-sm text-red-600">{getErrorMessage(register.error)}</p>
+        <p className="text-sm text-danger">{getErrorMessage(register.error)}</p>
       )}
 
       <button
