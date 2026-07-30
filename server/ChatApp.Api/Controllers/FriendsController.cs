@@ -138,6 +138,22 @@ public class FriendsController : ControllerBase
     return Ok(friendships.Select(MapToResponse));
   }
 
+  [HttpDelete("{id}")]
+  public async Task<IActionResult> RemoveFriend(int id)
+  {
+    var friendship = await _db.Friendships.FirstOrDefaultAsync(f => f.Id == id);
+    if (friendship is null)
+      return NotFound();
+
+    if (friendship.RequesterId != UserId && friendship.AddresseeId != UserId)
+      return Forbid();
+
+    _db.Friendships.Remove(friendship);
+    await _db.SaveChangesAsync();
+
+    return NoContent();
+  }
+
   private Task<FriendshipResponseDTO> BuildResponse(Friendship friendship)
   {
     return _db.Friendships
