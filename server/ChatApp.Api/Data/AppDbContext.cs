@@ -15,6 +15,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
   public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
   public DbSet<Message> Messages => Set<Message>();
   public DbSet<MessageReadReceipt> MessageReadReceipts => Set<MessageReadReceipt>();
+  public DbSet<Friendship> Friendships => Set<Friendship>();
 
   protected override void OnModelCreating(ModelBuilder builder)
   {
@@ -73,5 +74,21 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
       .WithMany(m => m.ReadReceipts)
       .HasForeignKey(rr => rr.MessageId)
       .OnDelete(DeleteBehavior.Cascade);
+
+    builder.Entity<Friendship>()
+      .HasOne(f => f.Requester)
+      .WithMany()
+      .HasForeignKey(f => f.RequesterId)
+      .OnDelete(DeleteBehavior.Restrict);
+
+    builder.Entity<Friendship>()
+      .HasOne(f => f.Addressee)
+      .WithMany()
+      .HasForeignKey(f => f.AddresseeId)
+      .OnDelete(DeleteBehavior.Restrict);
+
+    builder.Entity<Friendship>()
+      .HasIndex(f => new { f.RequesterId, f.AddresseeId })
+      .IsUnique();
   }
 }
