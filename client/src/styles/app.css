@@ -68,6 +68,13 @@
     --shadow: none;
     --border-radius: 12px;
   }
+
+  .dark em-emoji-picker {
+    --rgb-background: 38, 42, 51;
+    --rgb-input: 30, 33, 40;
+    --rgb-color: 231, 230, 226;
+    --rgb-accent: 122, 118, 242;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
