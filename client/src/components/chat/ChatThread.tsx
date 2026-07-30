@@ -9,8 +9,14 @@
   import { TypingIndicator } from './TypingIndicator'
   import type { Group } from '@/types/chat'
   import type { FileUploadResponse } from '@/types/files'
+  import { ChevronLeft } from 'lucide-react'
 
-  export function ChatThread({ group }: { group: Group }) {
+  interface ChatThreadProps {
+  group: Group
+  onBack: () => void
+}
+
+  export function ChatThread({ group, onBack }: ChatThreadProps) {
     const { data: user } = useCurrentUser()
     const { data: messages, isLoading } = useMessages(group.id)
     const { connection } = useChatConnectionContext()
@@ -54,7 +60,15 @@
 
     return (
       <div className="flex h-full flex-1 flex-col">
-        <header className="border-b border-line bg-surface px-6 py-4">
+        <header className="flex items-center gap-2 border-b border-line bg-surface px-4 py-4 md:px-6">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-soft hover:bg-accent-tint hover:text-accent md:hidden"
+            aria-label="Back to conversations"
+          >
+            <ChevronLeft size={20} />
+          </button>
           <h2 className="font-display text-lg text-ink">{title}</h2>
         </header>
 
