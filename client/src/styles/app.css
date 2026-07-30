@@ -10,6 +10,7 @@
   --color-accent-tint: #ECECFB;
   --color-signal: #2FA86D;
   --color-line: #E6E2D9;
+  --color-danger: #DC2626;
 
   --font-display: 'Fraunces', serif;
   --font-body: 'Manrope', ui-sans-serif, sans-serif;
@@ -17,6 +18,19 @@
 
   --radius-sm: 6px;
   --radius-md: 10px;
+}
+
+.dark {
+  --color-canvas: #1E2128;
+  --color-surface: #262A33;
+  --color-panel: #14161C;
+  --color-ink: #E7E6E2;
+  --color-ink-soft: #9599A6;
+  --color-accent: #7A76F2;
+  --color-accent-tint: #2C2A47;
+  --color-signal: #34C685;
+  --color-line: #383C46;
+  --color-danger: #F87171;
 }
 
 @layer base {
