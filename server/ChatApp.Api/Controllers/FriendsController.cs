@@ -1,9 +1,11 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using ChatApp.Api.Data;
 using ChatApp.Api.DTOs;
+using ChatApp.Api.Hubs;
 using ChatApp.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace ChatApp.Api.Controllers;
@@ -14,10 +16,12 @@ namespace ChatApp.Api.Controllers;
 public class FriendsController : ControllerBase
 {
   private readonly AppDbContext _db;
+  private readonly IHubContext<ChatHub> _hub;
 
-  public FriendsController(AppDbContext db)
+  public FriendsController(AppDbContext db, IHubContext<ChatHub> hub)
   {
     _db = db;
+    _hub = hub;
   }
 
   private string UserId => User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value;
@@ -63,7 +67,7 @@ public class FriendsController : ControllerBase
       {
         FriendshipStatus.Accepted => Conflict(new { message = "You're already friends." }),
         FriendshipStatus.Pending => Conflict(new { message = "A friend request is already pending." }),
-        _ => Conflict(new { message = "A previous request exists between you and this user." })
+        _ => Conflict(new { message = "A request between you and this user already exists." })
       };
     }
 
@@ -71,7 +75,10 @@ public class FriendsController : ControllerBase
     _db.Friendships.Add(friendship);
     await _db.SaveChangesAsync();
 
-    return Ok(await BuildResponse(friendship));
+    var targetView = await LoadResponse(friendship.Id, target.Id);
+    await _hub.Clients.User(target.Id).SendAsync("FriendRequestReceived", targetView);
+
+    return Ok(await LoadResponse(friendship.Id, UserId));
   }
 
   [HttpPost("requests/{id}/accept")]
@@ -97,13 +104,16 @@ public class FriendsController : ControllerBase
     friendship.RespondedAt = DateTime.UtcNow;
     await _db.SaveChangesAsync();
 
-    return Ok(await BuildResponse(friendship));
+    var requesterView = await LoadResponse(id, friendship.RequesterId);
+    await _hub.Clients.User(friendship.RequesterId).SendAsync("FriendRequestAccepted", requesterView);
+
+    return Ok(await LoadResponse(id, UserId));
   }
 
   [HttpPost("requests/{id}/decline")]
   public async Task<IActionResult> DeclineRequest(int id)
   {
-    var friendship = await _db.Friendships.FirstOrDefaultAsync(f => f.Id == id);
+    var friendship = await _db.Friendships.Include(f => f.Addressee).FirstOrDefaultAsync(f => f.Id == id);
     if (friendship is null)
     {
       return NotFound();
@@ -119,11 +129,46 @@ public class FriendsController : ControllerBase
       return BadRequest(new { message = "This request has already been responded to." });
     }
 
-    friendship.Status = FriendshipStatus.Declined;
-    friendship.RespondedAt = DateTime.UtcNow;
+    var requesterId = friendship.RequesterId;
+
+    // Delete rather than mark Declined — otherwise the pair can never request each other again
+    _db.Friendships.Remove(friendship);
     await _db.SaveChangesAsync();
 
-    return Ok(await BuildResponse(friendship));
+    await _hub.Clients.User(requesterId).SendAsync("FriendRequestDeclined", new FriendshipEndedDTO
+    {
+      ByUserId = UserId,
+      ByDisplayName = friendship.Addressee.DisplayName
+    });
+
+    return NoContent();
+  }
+
+  [HttpDelete("{id}")]
+  public async Task<IActionResult> RemoveFriend(int id)
+  {
+    var friendship = await _db.Friendships
+        .Include(f => f.Requester)
+        .Include(f => f.Addressee)
+        .FirstOrDefaultAsync(f => f.Id == id);
+
+    if (friendship is null) return NotFound();
+    if (friendship.RequesterId != UserId && friendship.AddresseeId != UserId) return Forbid();
+
+    var isRequester = friendship.RequesterId == UserId;
+    var otherUserId = isRequester ? friendship.AddresseeId : friendship.RequesterId;
+    var selfDisplayName = isRequester ? friendship.Requester.DisplayName : friendship.Addressee.DisplayName;
+
+    _db.Friendships.Remove(friendship);
+    await _db.SaveChangesAsync();
+
+    await _hub.Clients.User(otherUserId).SendAsync("FriendRemoved", new FriendshipEndedDTO
+    {
+      ByUserId = UserId,
+      ByDisplayName = selfDisplayName
+    });
+
+    return NoContent();
   }
 
   [HttpGet]
@@ -135,7 +180,7 @@ public class FriendsController : ControllerBase
         .Include(f => f.Addressee)
         .ToListAsync();
 
-    return Ok(friendships.Select(MapToResponse));
+    return Ok(friendships.Select(f => MapToResponse(f, UserId)));
   }
 
   [HttpGet("requests")]
@@ -147,38 +192,22 @@ public class FriendsController : ControllerBase
         .Include(f => f.Addressee)
         .ToListAsync();
 
-    return Ok(friendships.Select(MapToResponse));
+    return Ok(friendships.Select(f => MapToResponse(f, UserId)));
   }
 
-  [HttpDelete("{id}")]
-  public async Task<IActionResult> RemoveFriend(int id)
+  private async Task<FriendshipResponseDTO> LoadResponse(int friendshipId, string perspectiveUserId)
   {
-    var friendship = await _db.Friendships.FirstOrDefaultAsync(f => f.Id == id);
-    if (friendship is null)
-      return NotFound();
+    var f = await _db.Friendships
+        .Include(x => x.Requester)
+        .Include(x => x.Addressee)
+        .FirstAsync(x => x.Id == friendshipId);
 
-    if (friendship.RequesterId != UserId && friendship.AddresseeId != UserId)
-      return Forbid();
-
-    _db.Friendships.Remove(friendship);
-    await _db.SaveChangesAsync();
-
-    return NoContent();
+    return MapToResponse(f, perspectiveUserId);
   }
 
-  private Task<FriendshipResponseDTO> BuildResponse(Friendship friendship)
+  private static FriendshipResponseDTO MapToResponse(Friendship f, string perspectiveUserId)
   {
-    return _db.Friendships
-        .Include(f => f.Requester)
-        .Include(f => f.Addressee)
-        .Where(f => f.Id == friendship.Id)
-        .Select(f => MapToResponse(f))
-        .FirstAsync();
-  }
-
-  private FriendshipResponseDTO MapToResponse(Friendship f)
-  {
-    var isRequester = f.RequesterId == UserId;
+    var isRequester = f.RequesterId == perspectiveUserId;
     var other = isRequester ? f.Addressee : f.Requester;
 
     return new FriendshipResponseDTO
