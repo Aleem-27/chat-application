@@ -31,6 +31,23 @@ public class FriendsController : ControllerBase
       return NotFound(new { message = "No user found with that email." });
     }
 
+    return await CreateFriendRequestAsync(target);
+  }
+
+  [HttpPost("requests/by-user")]
+  public async Task<IActionResult> SendRequestByUserId(SendFriendRequestByUserIdDTO dto)
+  {
+    var target = await _db.Users.FirstOrDefaultAsync(u => u.Id == dto.TargetUserId);
+    if (target is null)
+    {
+      return NotFound(new { message = "User not found." });
+    }
+
+    return await CreateFriendRequestAsync(target);
+  }
+
+  private async Task<IActionResult> CreateFriendRequestAsync(ApplicationUser target)
+  {
     if (target.Id == UserId)
     {
       return BadRequest(new { message = "You can't add yourself as a friend." });
@@ -50,12 +67,7 @@ public class FriendsController : ControllerBase
       };
     }
 
-    var friendship = new Friendship
-    {
-      RequesterId = UserId,
-      AddresseeId = target.Id
-    };
-
+    var friendship = new Friendship { RequesterId = UserId, AddresseeId = target.Id };
     _db.Friendships.Add(friendship);
     await _db.SaveChangesAsync();
 
