@@ -14,8 +14,7 @@ interface FriendSearchResultsProps {
 export function FriendSearchResults({ query, onOpenConversation }: FriendSearchResultsProps) {
   const { data: friends } = useFriends()
   const createDm = useCreateDirectMessage()
-  const { menu, confirmTarget, openMenu, closeMenu, requestRemove, confirmRemove, cancelRemove } =
-    useFriendContextMenu()
+  const { menu, menuItems, confirmTarget, openMenu, closeMenu, confirmRemove, cancelRemove } = useFriendContextMenu()
 
   const filtered = useMemo(() => {
     if (!friends) return []
@@ -37,9 +36,10 @@ export function FriendSearchResults({ query, onOpenConversation }: FriendSearchR
           onClick={() => handleClick(friend)}
           onContextMenu={(e) =>
             openMenu(e, {
-              friendshipId: friend.id,
               userId: friend.userId,
               displayName: friend.displayName,
+              status: 'friend',
+              friendshipId: friend.id,
             })
           }
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-white/10"
@@ -57,7 +57,7 @@ export function FriendSearchResults({ query, onOpenConversation }: FriendSearchR
           x={menu.x}
           y={menu.y}
           onClose={closeMenu}
-          items={[{ label: 'Remove friend', danger: true, onClick: requestRemove }]}
+          items={menuItems}
         />
       )}
 

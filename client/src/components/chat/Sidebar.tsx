@@ -15,6 +15,8 @@ import { AddFriendPanel } from './AddFriendPanel'
 import { FriendSearchResults } from './FriendSearchResults'
 import { Moon, Sun } from 'lucide-react'
 import type { Group } from '@/types/chat'
+import { getRelationshipStatus } from '@/lib/friends'
+import { usePendingRequests } from '@/hooks/useFriends'
 
 interface SidebarProps {
   selectedGroupId: number | null
@@ -29,14 +31,14 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
   const { data: user } = useCurrentUser()
   const { data: groups, isLoading } = useGroups()
   const { data: friends } = useFriends()
+  const { data: pendingRequests } = usePendingRequests()
   const logout = useLogout()
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds)
   const { theme, toggleTheme } = useThemeStore()
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { menu, confirmTarget, openMenu, closeMenu, requestRemove, confirmRemove, cancelRemove, addFriend } =
-    useFriendContextMenu()
+  const { menu, menuItems, confirmTarget, openMenu, closeMenu, confirmRemove, cancelRemove } = useFriendContextMenu()
 
   usePresenceSync(groups)
 
@@ -99,12 +101,8 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
                 onClick={() => onSelectGroup(group.id)}
                 onContextMenu={(e) => {
                   if (!group.isDirectMessage || !other) return
-                  const existingFriendship = friends?.find((f) => f.userId === other.userId)
-                  openMenu(e, {
-                    friendshipId: existingFriendship?.id ?? null,
-                    userId: other.userId,
-                    displayName: other.displayName,
-                  })
+                  const { status, friendshipId } = getRelationshipStatus(other.userId, friends, pendingRequests)
+                  openMenu(e, { userId: other.userId, displayName: other.displayName, status, friendshipId })
                 }}
                 className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-white/10 ${
                   group.id === selectedGroupId ? 'bg-white/10' : ''
@@ -126,11 +124,7 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
           x={menu.x}
           y={menu.y}
           onClose={closeMenu}
-          items={[
-            menu.friendshipId
-              ? { label: 'Remove friend', danger: true, onClick: requestRemove }
-              : { label: 'Add friend', onClick: addFriend },
-          ]}
+          items={menuItems}
         />
       )}
 
