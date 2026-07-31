@@ -95,6 +95,35 @@ public class ChatHub : Hub
       throw new HubException("You are not a member of this group.");
     }
 
+    var group = await _db.Groups.FirstAsync(g => g.Id == dto.GroupId);
+    if (group.IsDirectMessage)
+    {
+      var otherMember = await _db.GroupMembers
+          .Include(gm => gm.User)
+          .FirstOrDefaultAsync(gm => gm.GroupId == dto.GroupId && gm.UserId != UserId);
+
+      if (otherMember is not null)
+      {
+        var isFriend = await _db.Friendships.AnyAsync(f =>
+            f.Status == FriendshipStatus.Accepted &&
+            ((f.RequesterId == UserId && f.AddresseeId == otherMember.UserId) ||
+             (f.RequesterId == otherMember.UserId && f.AddresseeId == UserId)));
+
+        if (!isFriend)
+        {
+          await Clients.Caller.SendAsync("MessageBlocked", new MessageBlockedDTO
+          {
+            GroupId = dto.GroupId,
+            Reason = "NotFriends",
+            TargetUserId = otherMember.UserId,
+            TargetDisplayName = otherMember.User.DisplayName
+          });
+          return;
+        }
+      }
+    }
+
+
     if (string.IsNullOrWhiteSpace(dto.Content) && string.IsNullOrWhiteSpace(dto.FileUrl))
     {
       throw new HubException("A message needs either content or a file.");
