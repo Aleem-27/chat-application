@@ -17,6 +17,14 @@ export function useSendFriendRequest() {
   })
 }
 
+export function useSendFriendRequestByUserId() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: friendsApi.sendRequestByUserId,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['friends'] }),
+  })
+}
+
 export function useRespondToRequest() {
   const queryClient = useQueryClient()
   return useMutation({

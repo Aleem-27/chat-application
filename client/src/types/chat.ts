@@ -32,3 +32,10 @@ export interface ReadReceipt {
   userId: string
   readAt: string
 }
+
+export interface MessageBlocked {
+  groupId: number
+  reason: string
+  targetUserId: string
+  targetDisplayName: string
+}
