@@ -15,3 +15,14 @@ export interface UserResponse {
   displayName: string
   avatarUrl: string | null
 }
+
+export interface UpdateProfilePayload {
+  displayName?: string
+  email?: string
+  avatarUrl?: string
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string
+  newPassword: string
+}

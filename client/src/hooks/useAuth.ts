@@ -43,3 +43,15 @@ export function useLogout() {
     },
   })
 }
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: authApi.updateProfile,
+    onSuccess: (user) => queryClient.setQueryData(AUTH_QUERY_KEY, user),
+  })
+}
+
+export function useChangePassword() {
+  return useMutation({ mutationFn: authApi.changePassword })
+}
