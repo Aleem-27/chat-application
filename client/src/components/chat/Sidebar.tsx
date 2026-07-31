@@ -1,22 +1,20 @@
 import { useState } from 'react'
 import { Search, UserPlus, X } from 'lucide-react'
-import { useCurrentUser, useLogout } from '@/hooks/useAuth'
+import { useCurrentUser } from '@/hooks/useAuth'
 import { useGroups } from '@/hooks/useGroups'
-import { useFriends } from '@/hooks/useFriends'
+import { useFriends, usePendingRequests } from '@/hooks/useFriends'
 import { usePresenceSync } from '@/hooks/usePresenceSync'
 import { usePresenceStore } from '@/store/presenceStore'
-import { useThemeStore } from '@/store/themeStore'
 import { useFriendContextMenu } from '@/hooks/useFriendContextMenu'
+import { getRelationshipStatus } from '@/lib/friends'
 import { Avatar } from '@/components/shared/Avatar'
 import { OnlineDot } from '@/components/shared/OnlineDot'
 import { ContextMenu } from '@/components/shared/ContextMenu'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { AddFriendPanel } from './AddFriendPanel'
 import { FriendSearchResults } from './FriendSearchResults'
-import { Moon, Sun } from 'lucide-react'
+import { ProfilePanel } from './ProfilePanel'
 import type { Group } from '@/types/chat'
-import { getRelationshipStatus } from '@/lib/friends'
-import { usePendingRequests } from '@/hooks/useFriends'
 
 interface SidebarProps {
   selectedGroupId: number | null
@@ -32,13 +30,13 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
   const { data: groups, isLoading } = useGroups()
   const { data: friends } = useFriends()
   const { data: pendingRequests } = usePendingRequests()
-  const logout = useLogout()
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds)
-  const { theme, toggleTheme } = useThemeStore()
   const [addFriendOpen, setAddFriendOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { menu, menuItems, confirmTarget, openMenu, closeMenu, confirmRemove, cancelRemove } = useFriendContextMenu()
+  const { menu, menuItems, confirmTarget, openMenu, closeMenu, confirmRemove, cancelRemove } =
+    useFriendContextMenu()
 
   usePresenceSync(groups)
 
@@ -47,7 +45,10 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
   return (
     <aside className="flex h-full w-full flex-col border-r border-line bg-panel text-white md:w-72">
       <div className="flex items-center justify-between px-5 pt-5">
-        <h1 className="font-display text-2xl">Converseo</h1>
+        <button onClick={() => setProfileOpen(true)} aria-label="Open profile and settings">
+          <Avatar name={user?.displayName ?? ''} avatarUrl={user?.avatarUrl} size="sm" />
+        </button>
+        <h1 className="font-display text-xl">Converseo</h1>
         <button
           onClick={() => setAddFriendOpen((open) => !open)}
           aria-label="Add a friend"
@@ -67,11 +68,7 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
             className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/40"
           />
           {isSearching && (
-            <button
-              onClick={() => setSearchQuery('')}
-              aria-label="Clear search"
-              className="text-white/50 hover:text-white"
-            >
+            <button onClick={() => setSearchQuery('')} aria-label="Clear search" className="text-white/50 hover:text-white">
               <X size={14} />
             </button>
           )}
@@ -83,17 +80,14 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
       {isSearching ? (
         <FriendSearchResults query={searchQuery} onOpenConversation={onSelectGroup} />
       ) : (
-        <nav className="flex-1 overflow-y-auto px-2">
+        <nav className="flex-1 overflow-y-auto px-2 pb-4">
           {isLoading && <p className="px-3 py-2 text-sm text-white/50">Loading conversations…</p>}
-          {groups?.length === 0 && (
-            <p className="px-3 py-2 text-sm text-white/50">No conversations yet.</p>
-          )}
+          {groups?.length === 0 && <p className="px-3 py-2 text-sm text-white/50">No conversations yet.</p>}
 
           {groups?.map((group) => {
             const other = user ? otherMember(group, user.id) : undefined
             const displayName = group.isDirectMessage ? (other?.displayName ?? group.name) : group.name
             const isOnline = group.isDirectMessage && !!other && onlineUserIds.has(other.userId)
-            // const isFriend = other ? friends?.some((f) => f.userId === other.userId) : undefined
 
             return (
               <button
@@ -119,14 +113,7 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
         </nav>
       )}
 
-      {menu && (
-        <ContextMenu
-          x={menu.x}
-          y={menu.y}
-          onClose={closeMenu}
-          items={menuItems}
-        />
-      )}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={closeMenu} />}
 
       {confirmTarget && (
         <ConfirmDialog
@@ -138,25 +125,7 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
         />
       )}
 
-      {user && (
-        <div className="flex items-center gap-3 border-t border-white/10 px-4 py-4">
-          <Avatar name={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
-          <p className="flex-1 truncate text-sm font-medium">{user.displayName}</p>
-          <button
-            onClick={toggleTheme}
-            aria-label="Toggle dark mode"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-white/60 hover:text-white"
-          >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-          <button
-            onClick={() => logout.mutate()}
-            className="text-xs font-medium text-white/60 hover:text-white"
-          >
-            Log out
-          </button>
-        </div>
-      )}
+      {profileOpen && <ProfilePanel onClose={() => setProfileOpen(false)} />}
     </aside>
   )
 }
