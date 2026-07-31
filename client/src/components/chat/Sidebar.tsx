@@ -91,7 +91,7 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
             const other = user ? otherMember(group, user.id) : undefined
             const displayName = group.isDirectMessage ? (other?.displayName ?? group.name) : group.name
             const isOnline = group.isDirectMessage && !!other && onlineUserIds.has(other.userId)
-            const isFriend = other ? friends?.some((f) => f.userId === other.userId) : undefined
+            // const isFriend = other ? friends?.some((f) => f.userId === other.userId) : undefined
 
             return (
               <button
