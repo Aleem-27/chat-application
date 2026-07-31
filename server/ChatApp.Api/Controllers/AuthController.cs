@@ -133,6 +133,68 @@ public class AuthController : ControllerBase
     return Ok(MapToUserResponse(user));
   }
 
+  [Authorize]
+  [HttpPatch("me")]
+  public async Task<IActionResult> UpdateProfile(UpdateProfileDTO dto)
+  {
+    var userId = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+    var user = userId is null ? null : await _userManager.FindByIdAsync(userId);
+    if (user is null)
+    {
+      return Unauthorized();
+    }
+
+    if (!string.IsNullOrWhiteSpace(dto.DisplayName))
+    {
+      user.DisplayName = dto.DisplayName;
+    }
+
+    if (dto.AvatarUrl is not null)
+    {
+      user.AvatarUrl = dto.AvatarUrl;
+    }
+
+    if (!string.IsNullOrWhiteSpace(dto.Email) && dto.Email != user.Email)
+    {
+      var existing = await _userManager.FindByEmailAsync(dto.Email);
+      if (existing is not null && existing.Id != user.Id)
+      {
+        return Conflict(new { message = "Email is already in use." });
+      }
+
+      user.Email = dto.Email;
+      user.UserName = dto.Email; // kept in sync — UserName == Email since registration
+    }
+
+    var result = await _userManager.UpdateAsync(user);
+    if (!result.Succeeded)
+    {
+      return BadRequest(result.Errors.Select(e => e.Description));
+    }
+
+    return Ok(MapToUserResponse(user));
+  }
+
+  [Authorize]
+  [HttpPost("change-password")]
+  public async Task<IActionResult> ChangePassword(ChangePasswordDTO dto)
+  {
+    var userId = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+    var user = userId is null ? null : await _userManager.FindByIdAsync(userId);
+    if (user is null)
+    {
+      return Unauthorized();
+    }
+
+    var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+    if (!result.Succeeded)
+    {
+      return BadRequest(result.Errors.Select(e => e.Description));
+    }
+
+    return NoContent();
+  }
+
   private async Task IssueTokensAsync(ApplicationUser user)
   {
     var refreshToken = _tokenService.GenerateRefreshToken(user.Id);
