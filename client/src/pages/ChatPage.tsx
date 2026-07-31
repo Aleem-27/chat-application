@@ -4,6 +4,7 @@ import { useGroups } from '@/hooks/useGroups'
 import { useMessageStream } from '@/hooks/useMessageStream'
 import { Sidebar } from '@/components/chat/Sidebar'
 import { ChatThread } from '@/components/chat/ChatThread'
+import { useFriendRealtimeSync } from '@/hooks/useFriendRealTimeSync'
 
 function ChatPageContent() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
@@ -11,6 +12,7 @@ function ChatPageContent() {
   const { connection } = useChatConnectionContext()
 
   useMessageStream(connection)
+  useFriendRealtimeSync(connection)
 
   const selectedGroup = groups?.find((g) => g.id === selectedGroupId)
 
