@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import type { HubConnection } from '@microsoft/signalr'
 import type { Message } from '@/types/chat'
 
@@ -10,13 +10,29 @@ export function useMessageStream(connection: HubConnection | null) {
     if (!connection) return
 
     function upsert(message: Message) {
-      queryClient.setQueryData<Message[]>(['messages', message.groupId], (existing) => {
-        if (!existing) return [message]
-        const index = existing.findIndex((m) => m.id === message.id)
-        if (index === -1) return [...existing, message]
-        const next = [...existing]
-        next[index] = message
-        return next
+      queryClient.setQueryData<InfiniteData<Message[]>>(['messages', message.groupId], (old) => {
+        if (!old) {
+          return { pages: [[message]], pageParams: [1] }
+        }
+
+        let found = false
+        const pages = old.pages.map((page) => {
+          const index = page.findIndex((m) => m.id === message.id)
+          if (index === -1) return page
+          found = true
+          const next = [...page]
+          next[index] = message
+          return next
+        })
+
+        if (found) {
+          return { ...old, pages }
+        }
+
+        // New message — belongs on the most recent page (index 0)
+        const newPages = [...pages]
+        newPages[0] = [...(newPages[0] ?? []), message]
+        return { ...old, pages: newPages }
       })
     }
 
