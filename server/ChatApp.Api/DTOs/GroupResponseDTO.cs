@@ -6,5 +6,6 @@ public class GroupResponseDTO
   public string Name { get; set; } = string.Empty;
   public bool IsDirectMessage { get; set; }
   public DateTime CreatedAt { get; set; }
+  public DateTime? LastMessageAt { get; set; }
   public List<GroupMemberResponseDTO> Members { get; set; } = new();
 }

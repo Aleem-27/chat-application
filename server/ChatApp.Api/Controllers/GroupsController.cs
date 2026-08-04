@@ -145,9 +145,19 @@ public class GroupsController : ControllerBase
     return null;
   }
 
+  private async Task<HashSet<string>> GetFriendUserIdsAsync()
+  {
+    var friendships = await _db.Friendships
+        .Where(f => f.Status == FriendshipStatus.Accepted && (f.RequesterId == UserId || f.AddresseeId == UserId))
+        .ToListAsync();
+
+    return friendships.Select(f => f.RequesterId == UserId ? f.AddresseeId : f.RequesterId).ToHashSet();
+  }
+
   private async Task<GroupResponseDTO> BuildGroupResponse(int groupId)
   {
     var group = await _db.Groups.FirstAsync(g => g.Id == groupId);
+    var friendIds = await GetFriendUserIdsAsync();
 
     var members = await _db.GroupMembers
         .Where(gm => gm.GroupId == groupId)
@@ -165,8 +175,14 @@ public class GroupsController : ControllerBase
     var onlineIds = _connectionTracker.GetOnlineUserIds();
     foreach (var member in members)
     {
-      member.IsOnline = onlineIds.Contains(member.UserId);
+      member.IsOnline = friendIds.Contains(member.UserId) && onlineIds.Contains(member.UserId);
     }
+
+    var lastMessageAt = await _db.Messages
+        .Where(m => m.GroupId == groupId)
+        .OrderByDescending(m => m.SentAt)
+        .Select(m => (DateTime?)m.SentAt)
+        .FirstOrDefaultAsync();
 
     return new GroupResponseDTO
     {
@@ -174,7 +190,8 @@ public class GroupsController : ControllerBase
       Name = group.Name,
       IsDirectMessage = group.IsDirectMessage,
       CreatedAt = group.CreatedAt,
-      Members = members
+      Members = members,
+      LastMessageAt = lastMessageAt
     };
   }
 
