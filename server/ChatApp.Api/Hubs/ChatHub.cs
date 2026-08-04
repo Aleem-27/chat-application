@@ -145,22 +145,65 @@ public class ChatHub : Hub
 
     var sender = await _db.Users.FindAsync(UserId);
 
-    var response = new MessageResponseDTO
-    {
-      Id = message.Id,
-      GroupId = message.GroupId,
-      Content = message.Content,
-      SentAt = message.SentAt,
-      SenderId = UserId,
-      SenderDisplayName = sender?.DisplayName ?? string.Empty,
-      FileUrl = message.FileUrl,
-      FileName = message.FileName,
-      FileSizeBytes = message.FileSizeBytes,
-      FileContentType = message.FileContentType
-    };
+    var response = MapToResponse(message);
 
     await Clients.Group(GroupName(dto.GroupId)).SendAsync("ReceiveMessage", response);
   }
+
+  public async Task EditMessage(EditMessageDTO dto)
+  {
+    var message = await _db.Messages.Include(m => m.Sender).FirstOrDefaultAsync(m => m.Id == dto.MessageId);
+    if (message is null)
+      throw new HubException("Message not found.");
+
+    if (message.SenderId != UserId)
+      throw new HubException("You can only edit your own messages.");
+
+    if (message.IsDeleted)
+      throw new HubException("Cannot edit a deleted message.");
+
+    message.Content = dto.Content;
+    message.EditedAt = DateTime.UtcNow;
+    await _db.SaveChangesAsync();
+
+    await Clients.Group(GroupName(message.GroupId)).SendAsync("MessageEdited", MapToResponse(message));
+  }
+
+  public async Task DeleteMessage(int messageId)
+  {
+    var message = await _db.Messages.Include(m => m.Sender).FirstOrDefaultAsync(m => m.Id == messageId);
+    if (message is null)
+      throw new HubException("Message not found.");
+
+    if (message.SenderId != UserId)
+      throw new HubException("You can only delete your own messages.");
+
+    message.IsDeleted = true;
+    message.Content = null;
+    message.FileUrl = null;
+    message.FileName = null;
+    message.FileSizeBytes = null;
+    message.FileContentType = null;
+    await _db.SaveChangesAsync();
+
+    await Clients.Group(GroupName(message.GroupId)).SendAsync("MessageDeleted", MapToResponse(message));
+  }
+
+  private static MessageResponseDTO MapToResponse(Message message) => new()
+  {
+    Id = message.Id,
+    GroupId = message.GroupId,
+    Content = message.Content,
+    SentAt = message.SentAt,
+    EditedAt = message.EditedAt,
+    IsDeleted = message.IsDeleted,
+    SenderId = message.SenderId,
+    SenderDisplayName = message.Sender.DisplayName,
+    FileUrl = message.FileUrl,
+    FileName = message.FileName,
+    FileSizeBytes = message.FileSizeBytes,
+    FileContentType = message.FileContentType
+  };
 
   public async Task MarkAsRead(int messageId)
   {
