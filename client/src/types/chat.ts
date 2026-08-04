@@ -12,6 +12,7 @@ export interface Group {
   isDirectMessage: boolean
   createdAt: string
   members: GroupMember[]
+  lastMessageAt: string | null
 }
 
 export interface Message {
