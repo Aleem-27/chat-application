@@ -9,17 +9,25 @@ export function useMessageStream(connection: HubConnection | null) {
   useEffect(() => {
     if (!connection) return
 
-    function handleReceiveMessage(message: Message) {
+    function upsert(message: Message) {
       queryClient.setQueryData<Message[]>(['messages', message.groupId], (existing) => {
         if (!existing) return [message]
-        if (existing.some((m) => m.id === message.id)) return existing // guard against duplicate delivery
-        return [...existing, message]
+        const index = existing.findIndex((m) => m.id === message.id)
+        if (index === -1) return [...existing, message]
+        const next = [...existing]
+        next[index] = message
+        return next
       })
     }
 
-    connection.on('ReceiveMessage', handleReceiveMessage)
+    connection.on('ReceiveMessage', upsert)
+    connection.on('MessageEdited', upsert)
+    connection.on('MessageDeleted', upsert)
+
     return () => {
-      connection.off('ReceiveMessage', handleReceiveMessage)
+      connection.off('ReceiveMessage', upsert)
+      connection.off('MessageEdited', upsert)
+      connection.off('MessageDeleted', upsert)
     }
   }, [connection, queryClient])
 }

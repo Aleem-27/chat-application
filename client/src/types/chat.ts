@@ -19,6 +19,8 @@ export interface Message {
   groupId: number
   content: string | null
   sentAt: string
+  editedAt: string | null
+  isDeleted: boolean
   senderId: string
   senderDisplayName: string
   fileUrl: string | null
