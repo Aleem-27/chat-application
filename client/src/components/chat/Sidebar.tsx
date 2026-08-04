@@ -15,6 +15,7 @@ import { AddFriendPanel } from './AddFriendPanel'
 import { FriendSearchResults } from './FriendSearchResults'
 import { ProfilePanel } from './ProfilePanel'
 import type { Group } from '@/types/chat'
+import { useUnreadStore } from '@/store/unreadStore'
 
 interface SidebarProps {
   selectedGroupId: number | null
@@ -34,9 +35,15 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const unreadCounts = useUnreadStore((s) => s.unreadCounts)
 
-  const { menu, menuItems, confirmTarget, openMenu, closeMenu, confirmRemove, cancelRemove } =
-    useFriendContextMenu()
+  const { menu, menuItems, confirmTarget, openMenu, closeMenu, confirmRemove, cancelRemove } = useFriendContextMenu()
+
+  const sortedGroups = [...(groups ?? [])].sort((a, b) => {
+    const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0
+    const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0
+    return bTime - aTime
+  })
 
   usePresenceSync(groups)
 
@@ -81,10 +88,11 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
           {isLoading && <p className="px-3 py-2 text-sm text-white/50">Loading conversations…</p>}
           {groups?.length === 0 && <p className="px-3 py-2 text-sm text-white/50">No conversations yet.</p>}
 
-          {groups?.map((group) => {
+          {sortedGroups.map((group) => {
             const other = user ? otherMember(group, user.id) : undefined
             const displayName = group.isDirectMessage ? (other?.displayName ?? group.name) : group.name
             const isOnline = group.isDirectMessage && !!other && onlineUserIds.has(other.userId)
+            const unread = unreadCounts[group.id] ?? 0
 
             return (
               <button
@@ -103,7 +111,14 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
                   <Avatar name={displayName} size="sm" />
                   <OnlineDot online={isOnline} />
                 </span>
-                <span className="truncate text-sm font-medium">{displayName}</span>
+                <span className={`min-w-0 flex-1 truncate text-sm ${unread > 0 ? 'font-semibold text-white' : 'font-medium'}`}>
+                  {displayName}
+                </span>
+                {unread > 0 && (
+                  <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-white">
+                    {unread}
+                  </span>
+                )}
               </button>
             )
           })}
