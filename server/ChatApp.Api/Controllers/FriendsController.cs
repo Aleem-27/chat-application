@@ -1,12 +1,13 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using ChatApp.Api.Data;
+﻿using ChatApp.Api.Data;
 using ChatApp.Api.DTOs;
 using ChatApp.Api.Hubs;
 using ChatApp.Api.Models;
+using ChatApp.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace ChatApp.Api.Controllers;
 
@@ -17,11 +18,13 @@ public class FriendsController : ControllerBase
 {
   private readonly AppDbContext _db;
   private readonly IHubContext<ChatHub> _hub;
+  private readonly IUserConnectionTracker _connectionTracker;
 
-  public FriendsController(AppDbContext db, IHubContext<ChatHub> hub)
+  public FriendsController(AppDbContext db, IHubContext<ChatHub> hub, IUserConnectionTracker connectionTracker)
   {
     _db = db;
     _hub = hub;
+    _connectionTracker = connectionTracker;
   }
 
   private string UserId => User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value;
@@ -107,6 +110,13 @@ public class FriendsController : ControllerBase
     var requesterView = await LoadResponse(id, friendship.RequesterId);
     await _hub.Clients.User(friendship.RequesterId).SendAsync("FriendRequestAccepted", requesterView);
 
+    // Reveal presence to both sides immediately, in whichever direction is currently true
+    var onlineIds = _connectionTracker.GetOnlineUserIds();
+    if (onlineIds.Contains(friendship.RequesterId))
+      await _hub.Clients.User(UserId).SendAsync("UserOnline", friendship.RequesterId);
+    if (onlineIds.Contains(UserId))
+      await _hub.Clients.User(friendship.RequesterId).SendAsync("UserOnline", UserId);
+
     return Ok(await LoadResponse(id, UserId));
   }
 
@@ -167,6 +177,10 @@ public class FriendsController : ControllerBase
       ByUserId = UserId,
       ByDisplayName = selfDisplayName
     });
+
+    // Hide presence from both sides now that they're no longer friends
+    await _hub.Clients.User(UserId).SendAsync("UserOffline", otherUserId);
+    await _hub.Clients.User(otherUserId).SendAsync("UserOffline", UserId);
 
     return NoContent();
   }
