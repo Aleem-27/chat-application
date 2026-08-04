@@ -24,6 +24,7 @@ export interface Message {
   isDeleted: boolean
   senderId: string
   senderDisplayName: string
+  readByUserIds: string[]
   fileUrl: string | null
   fileName: string | null
   fileSizeBytes: number | null

@@ -8,9 +8,32 @@ export function useReadReceipts(
   messages: Message[] | undefined,
   currentUserId: string | undefined
 ) {
-  // messageId -> array of userIds who've read it
   const [readBy, setReadBy] = useState<Map<number, Set<string>>>(new Map())
   const lastMarkedIdRef = useRef<number | null>(null)
+  const hydratedGroupIdRef = useRef<number | null>(null)
+
+  // Reset state the moment we switch groups
+  useEffect(() => {
+    if (hydratedGroupIdRef.current !== groupId) {
+      setReadBy(new Map())
+      lastMarkedIdRef.current = null
+    }
+  }, [groupId])
+
+  // Hydrate once per group, from whatever history has already loaded
+  useEffect(() => {
+    if (!messages || messages.length === 0) return
+    if (hydratedGroupIdRef.current === groupId) return
+
+    const map = new Map<number, Set<string>>()
+    for (const message of messages) {
+      if (message.readByUserIds.length > 0) {
+        map.set(message.id, new Set(message.readByUserIds))
+      }
+    }
+    setReadBy(map)
+    hydratedGroupIdRef.current = groupId
+  }, [messages, groupId])
 
   useEffect(() => {
     if (!connection) return
@@ -33,7 +56,7 @@ export function useReadReceipts(
     if (!connection || !messages || messages.length === 0 || !currentUserId) return
 
     const latest = messages[messages.length - 1]
-    if (latest.senderId === currentUserId) return // don't mark your own message as read
+    if (latest.senderId === currentUserId) return
     if (lastMarkedIdRef.current === latest.id) return
 
     lastMarkedIdRef.current = latest.id
