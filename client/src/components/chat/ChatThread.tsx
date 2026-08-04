@@ -13,6 +13,8 @@ import { ChevronLeft } from 'lucide-react'
 import { useSendFriendRequestByUserId } from '@/hooks/useFriends'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import type { MessageBlocked } from '@/types/chat'
+import { useMessageActions } from '@/hooks/useMessageActions'
+
 interface ChatThreadProps {
 group: Group
 onBack: () => void
@@ -23,6 +25,7 @@ export function ChatThread({ group, onBack }: ChatThreadProps) {
   const { data: messages, isLoading } = useMessages(group.id)
   const { connection } = useChatConnectionContext()
   const { typingUserIds, notifyTyping } = useTypingIndicator(connection, group.id)
+  const { editMessage, deleteMessage } = useMessageActions(connection)
   const [blockedInfo, setBlockedInfo] = useState<MessageBlocked | null>(null)
   const sendFriendRequest = useSendFriendRequestByUserId()  
   useReadReceipts(connection, group.id, messages, user?.id)
@@ -91,7 +94,7 @@ export function ChatThread({ group, onBack }: ChatThreadProps) {
       {isLoading || !user ? (
         <div className="flex flex-1 items-center justify-center text-ink-soft">Loading messages…</div>
       ) : (
-        <MessageList messages={messages   ?? []} currentUserId={user.id} members={group.members} readBy={readBy}/>
+        <MessageList messages={messages ?? []} currentUserId={user.id} members={group.members} readBy={readBy} onEdit={editMessage} onDelete={deleteMessage} />
       )}
 
       <TypingIndicator typingUserIds={typingUserIds} members={group.members} />
