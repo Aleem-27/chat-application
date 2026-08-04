@@ -40,9 +40,10 @@ public class ChatHub : Hub
 
     if (justCameOnline)
     {
-      foreach (var groupId in groupIds)
+      var friendIds = await GetFriendUserIdsAsync(userId);
+      if (friendIds.Count > 0)
       {
-        await Clients.Group(GroupName(groupId)).SendAsync("UserOnline", userId);
+        await Clients.Users(friendIds).SendAsync("UserOnline", userId);
       }
     }
 
@@ -56,18 +57,23 @@ public class ChatHub : Hub
 
     if (wentOffline)
     {
-      var groupIds = await _db.GroupMembers
-          .Where(gm => gm.UserId == userId)
-          .Select(gm => gm.GroupId)
-          .ToListAsync();
-
-      foreach (var groupId in groupIds)
+      var friendIds = await GetFriendUserIdsAsync(userId);
+      if (friendIds.Count > 0)
       {
-        await Clients.Group(GroupName(groupId)).SendAsync("UserOffline", userId);
+        await Clients.Users(friendIds).SendAsync("UserOffline", userId);
       }
     }
 
     await base.OnDisconnectedAsync(exception);
+  }
+
+  private async Task<List<string>> GetFriendUserIdsAsync(string userId)
+  {
+    var friendships = await _db.Friendships
+        .Where(f => f.Status == FriendshipStatus.Accepted && (f.RequesterId == userId || f.AddresseeId == userId))
+        .ToListAsync();
+
+    return friendships.Select(f => f.RequesterId == userId ? f.AddresseeId : f.RequesterId).ToList();
   }
 
   public async Task JoinGroup(int groupId)
