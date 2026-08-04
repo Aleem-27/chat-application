@@ -45,10 +45,7 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
   return (
     <aside className="flex h-full w-full flex-col border-r border-line bg-panel text-white md:w-72">
       <div className="flex items-center justify-between px-5 pt-5">
-        <button onClick={() => setProfileOpen(true)} aria-label="Open profile and settings">
-          <Avatar name={user?.displayName ?? ''} avatarUrl={user?.avatarUrl} size="sm" />
-        </button>
-        <h1 className="font-display text-xl">Converseo</h1>
+        <h1 className="font-display text-2xl">Converseo</h1>
         <button
           onClick={() => setAddFriendOpen((open) => !open)}
           aria-label="Add a friend"
@@ -126,6 +123,16 @@ export function Sidebar({ selectedGroupId, onSelectGroup }: SidebarProps) {
       )}
 
       {profileOpen && <ProfilePanel onClose={() => setProfileOpen(false)} />}
+      <button
+        onClick={() => setProfileOpen(true)}
+        className="flex items-center gap-3 border-t border-white/10 px-4 py-4 text-left transition-colors hover:bg-white/10"
+      >
+        <Avatar name={user?.displayName ?? ''} avatarUrl={user?.avatarUrl} size="sm" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{user?.displayName}</p>
+          <p className="truncate text-xs text-white/50">{user?.email}</p>
+        </div>
+      </button>
     </aside>
   )
 }
