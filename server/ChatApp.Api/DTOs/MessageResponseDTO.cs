@@ -10,6 +10,7 @@ public class MessageResponseDTO
   public bool IsDeleted { get; set; }
   public string SenderId { get; set; } = string.Empty;
   public string SenderDisplayName { get; set; } = string.Empty;
+  public List<string> ReadByUserIds { get; set; } = new();
   public string? FileUrl { get; set; }
   public string? FileName { get; set; }
   public long? FileSizeBytes { get; set; }
