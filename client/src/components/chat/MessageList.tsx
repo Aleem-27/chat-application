@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Avatar } from '@/components/shared/Avatar'
 import { ContextMenu } from '@/components/shared/ContextMenu'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
@@ -13,6 +13,9 @@ interface MessageListProps {
   readBy: Map<number, Set<string>>
   onEdit: (messageId: number, content: string) => void
   onDelete: (messageId: number) => void
+  onLoadMore: () => void
+  hasMore: boolean
+  isLoadingMore: boolean
 }
 
 const GROUP_GAP_MINUTES = 5
@@ -28,14 +31,39 @@ export function MessageList({
   readBy,
   onEdit,
   onDelete,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
 }: MessageListProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const prevScrollHeightRef = useRef(0)
+  const isRestoringScrollRef = useRef(false)
+
   const [menu, setMenu] = useState<{ x: number; y: number; message: Message } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Message | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editValue, setEditValue] = useState('')
 
-  useEffect(() => {
+  function handleScroll() {
+    const el = containerRef.current
+    if (!el || el.scrollTop > 80 || !hasMore || isLoadingMore) return
+
+    prevScrollHeightRef.current = el.scrollHeight
+    isRestoringScrollRef.current = true
+    onLoadMore()
+  }
+
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    if (isRestoringScrollRef.current) {
+      el.scrollTop = el.scrollHeight - prevScrollHeightRef.current
+      isRestoringScrollRef.current = false
+      return
+    }
+
     bottomRef.current?.scrollIntoView({ block: 'end' })
   }, [messages])
 
@@ -51,7 +79,14 @@ export function MessageList({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4 md:px-6">
+    <div
+      ref={containerRef}
+      onScroll={handleScroll}
+      className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4 md:px-6"
+    >
+      {isLoadingMore && (
+        <p className="py-2 text-center text-xs text-ink-soft">Loading older messages…</p>
+      )}
       {messages.map((message, index) => {
         const isOwn = message.senderId === currentUserId
         const previous = messages[index - 1]

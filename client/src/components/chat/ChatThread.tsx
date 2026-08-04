@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useCurrentUser } from '@/hooks/useAuth'
 import { useMessages } from '@/hooks/useMessages'
 import { useChatConnectionContext } from '@/lib/chatConnectionContext'
@@ -22,13 +22,18 @@ onBack: () => void
 
 export function ChatThread({ group, onBack }: ChatThreadProps) {
   const { data: user } = useCurrentUser()
-  const { data: messages, isLoading } = useMessages(group.id)
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useMessages(group.id)
   const { connection } = useChatConnectionContext()
   const { typingUserIds, notifyTyping } = useTypingIndicator(connection, group.id)
   const { editMessage, deleteMessage } = useMessageActions(connection)
   const [blockedInfo, setBlockedInfo] = useState<MessageBlocked | null>(null)
   const sendFriendRequest = useSendFriendRequestByUserId()  
+  const messages = useMemo(
+    () => (data ? [...data.pages].reverse().flat() : []),
+    [data]
+  )
   useReadReceipts(connection, group.id, messages, user?.id)
+  
 
   useEffect(() => {
     if (!connection) return
@@ -94,7 +99,7 @@ export function ChatThread({ group, onBack }: ChatThreadProps) {
       {isLoading || !user ? (
         <div className="flex flex-1 items-center justify-center text-ink-soft">Loading messages…</div>
       ) : (
-        <MessageList messages={messages ?? []} currentUserId={user.id} members={group.members} readBy={readBy} onEdit={editMessage} onDelete={deleteMessage} />
+        <MessageList messages={messages} currentUserId={user.id} members={group.members} readBy={readBy} onEdit={editMessage} onDelete={deleteMessage} onLoadMore={fetchNextPage} hasMore={hasNextPage} isLoadingMore={isFetchingNextPage} />
       )}
 
       <TypingIndicator typingUserIds={typingUserIds} members={group.members} />
