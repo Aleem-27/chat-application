@@ -149,6 +149,20 @@ public class ChatHub : Hub
     _db.Messages.Add(message);
     await _db.SaveChangesAsync();
 
+    var hiddenMembers = await _db.GroupMembers
+    .Where(gm => gm.GroupId == dto.GroupId && gm.IsHidden)
+    .ToListAsync();
+
+    if (hiddenMembers.Count > 0)
+    {
+      foreach (var hm in hiddenMembers)
+      {
+        hm.IsHidden = false;
+      }
+
+      await _db.SaveChangesAsync();
+    }
+
     var sender = await _db.Users.FindAsync(UserId);
 
     var response = MapToResponse(message);

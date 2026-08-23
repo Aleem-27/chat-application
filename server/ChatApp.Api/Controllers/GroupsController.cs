@@ -209,7 +209,10 @@ public class GroupsController : ControllerBase
   public async Task<IActionResult> HideGroup(int id)
   {
     var membership = await _db.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && gm.UserId == UserId);
-    if (membership is null) return NotFound();
+    if (membership is null)
+    {
+      return NotFound();
+    }
 
     membership.IsHidden = true;
     await _db.SaveChangesAsync();
