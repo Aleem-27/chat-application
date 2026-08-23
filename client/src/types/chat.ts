@@ -12,6 +12,7 @@ export interface Group {
   isDirectMessage: boolean
   createdAt: string
   members: GroupMember[]
+  lastMessage: LastMessagePreview | null
   lastMessageAt: string | null
 }
 
@@ -42,4 +43,14 @@ export interface MessageBlocked {
   reason: string
   targetUserId: string
   targetDisplayName: string
+}
+
+export interface LastMessagePreview {
+  senderId: string
+  senderDisplayName: string
+  content: string | null
+  hasFile: boolean
+  fileName: string | null
+  isDeleted: boolean
+  sentAt: string
 }
