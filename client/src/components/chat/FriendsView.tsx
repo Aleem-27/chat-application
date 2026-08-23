@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type MouseEvent } from 'react'
 import { X } from 'lucide-react'
-import { useFriends, usePendingRequests, useRemoveFriend, useRespondToRequest, useSendFriendRequest } from '@/hooks/useFriends'
+import { useCancelRequest, useFriends, usePendingRequests, useRemoveFriend, useRespondToRequest, useSendFriendRequest } from '@/hooks/useFriends'
 import { useCreateDirectMessage } from '@/hooks/useGroups'
 import { Avatar } from '@/components/shared/Avatar'
 import { ContextMenu } from '@/components/shared/ContextMenu'
@@ -22,6 +22,7 @@ interface MenuState {
 export function FriendsView({ onClose, onOpenConversation }: FriendsViewProps) {
   const [email, setEmail] = useState('')
   const sendRequest = useSendFriendRequest()
+  const cancelRequest = useCancelRequest()
   const { data: pendingRequests } = usePendingRequests()
   const respond = useRespondToRequest()
   const { data: friends } = useFriends()
@@ -32,6 +33,7 @@ export function FriendsView({ onClose, onOpenConversation }: FriendsViewProps) {
   const [confirmTarget, setConfirmTarget] = useState<Friendship | null>(null)
 
   const incoming = pendingRequests?.filter((r) => r.isIncoming) ?? []
+  const outgoing = pendingRequests?.filter((r) => !r.isIncoming) ?? []
 
   function handleAddSubmit(event: FormEvent) {
     event.preventDefault()
@@ -49,7 +51,7 @@ export function FriendsView({ onClose, onOpenConversation }: FriendsViewProps) {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center justify-between px-4 pb-2 pt-1">
+      <div className="flex items-center justify-between px-4 pb-2 pt-4">
         <p className="text-sm font-semibold text-white/80">Friends</p>
         <button onClick={onClose} aria-label="Back to conversations" className="text-white/60 hover:text-white">
           <X size={16} />
@@ -78,9 +80,10 @@ export function FriendsView({ onClose, onOpenConversation }: FriendsViewProps) {
       )}
 
       <div className="flex-1 overflow-y-auto px-2 pb-4">
-        {incoming.length > 0 && (
+        {(incoming.length > 0 || outgoing.length > 0) && (
           <div className="mb-4">
             <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-white/40">Pending</p>
+
             {incoming.map((request) => (
               <div key={request.id} className="flex items-center gap-2 rounded-md px-2 py-2">
                 <Avatar name={request.displayName} avatarUrl={request.avatarUrl} size="sm" />
@@ -88,17 +91,24 @@ export function FriendsView({ onClose, onOpenConversation }: FriendsViewProps) {
                   <p className="truncate text-sm text-white">{request.displayName}</p>
                   <p className="truncate text-xs text-white/50">{request.email}</p>
                 </div>
-                <button
-                  onClick={() => respond.mutate({ id: request.id, accept: true })}
-                  className="text-xs font-medium text-signal"
-                >
+                <button onClick={() => respond.mutate({ id: request.id, accept: true })} className="text-xs font-medium text-signal">
                   Accept
                 </button>
-                <button
-                  onClick={() => respond.mutate({ id: request.id, accept: false })}
-                  className="text-xs font-medium text-white/50"
-                >
+                <button onClick={() => respond.mutate({ id: request.id, accept: false })} className="text-xs font-medium text-white/50">
                   Reject
+                </button>
+              </div>
+            ))}
+
+            {outgoing.map((request) => (
+              <div key={request.id} className="flex items-center gap-2 rounded-md px-2 py-2">
+                <Avatar name={request.displayName} avatarUrl={request.avatarUrl} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-white">{request.displayName}</p>
+                  <p className="truncate text-xs text-white/50">Pending…</p>
+                </div>
+                <button onClick={() => cancelRequest.mutate(request.id)} className="text-xs font-medium text-danger">
+                  Cancel
                 </button>
               </div>
             ))}
