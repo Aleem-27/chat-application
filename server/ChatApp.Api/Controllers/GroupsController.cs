@@ -97,7 +97,7 @@ public class GroupsController : ControllerBase
   public async Task<IActionResult> GetMyGroups()
   {
     var groupIds = await _db.GroupMembers
-        .Where(gm => gm.UserId == UserId)
+        .Where(gm => gm.UserId == UserId && !gm.IsHidden)
         .Select(gm => gm.GroupId)
         .ToListAsync();
 
@@ -178,10 +178,19 @@ public class GroupsController : ControllerBase
       member.IsOnline = friendIds.Contains(member.UserId) && onlineIds.Contains(member.UserId);
     }
 
-    var lastMessageAt = await _db.Messages
+    var lastMessage = await _db.Messages
         .Where(m => m.GroupId == groupId)
         .OrderByDescending(m => m.SentAt)
-        .Select(m => (DateTime?)m.SentAt)
+        .Select(m => new LastMessagePreviewDTO
+        {
+          SenderId = m.SenderId,
+          SenderDisplayName = m.Sender.DisplayName,
+          Content = m.Content,
+          HasFile = m.FileUrl != null,
+          FileName = m.FileName,
+          IsDeleted = m.IsDeleted,
+          SentAt = m.SentAt
+        })
         .FirstOrDefaultAsync();
 
     return new GroupResponseDTO
@@ -191,8 +200,20 @@ public class GroupsController : ControllerBase
       IsDirectMessage = group.IsDirectMessage,
       CreatedAt = group.CreatedAt,
       Members = members,
-      LastMessageAt = lastMessageAt
+      LastMessageAt = lastMessage?.SentAt,
+      LastMessage = lastMessage
     };
+  }
+
+  [HttpPost("{id}/hide")]
+  public async Task<IActionResult> HideGroup(int id)
+  {
+    var membership = await _db.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && gm.UserId == UserId);
+    if (membership is null) return NotFound();
+
+    membership.IsHidden = true;
+    await _db.SaveChangesAsync();
+    return NoContent();
   }
 
   [HttpPost("{id}/members")]
