@@ -53,6 +53,38 @@ public class FriendsController : ControllerBase
     return await CreateFriendRequestAsync(target);
   }
 
+  [HttpDelete("requests/{id}")]
+  public async Task<IActionResult> CancelRequest(int id)
+  {
+    var friendship = await _db.Friendships.Include(f => f.Requester).FirstOrDefaultAsync(f => f.Id == id);
+    if (friendship is null)
+    {
+      return NotFound();
+    }
+
+    if (friendship.RequesterId != UserId)
+    {
+      return Forbid();
+    }
+
+    if (friendship.Status != FriendshipStatus.Pending)
+    {
+      return BadRequest(new { message = "This request has already been responded to." });
+    }
+
+    var addresseeId = friendship.AddresseeId;
+    _db.Friendships.Remove(friendship);
+    await _db.SaveChangesAsync();
+
+    await _hub.Clients.User(addresseeId).SendAsync("FriendRequestCancelled", new FriendshipEndedDTO
+    {
+      ByUserId = UserId,
+      ByDisplayName = friendship.Requester.DisplayName
+    });
+
+    return NoContent();
+  }
+
   private async Task<IActionResult> CreateFriendRequestAsync(ApplicationUser target)
   {
     if (target.Id == UserId)
