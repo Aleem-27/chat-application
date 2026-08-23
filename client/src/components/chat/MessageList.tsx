@@ -168,14 +168,10 @@ export function MessageList({
                 {bodyContent}
                 {!isEditing && (
                   <div className="mt-1 flex items-center justify-between gap-3">
-                    {message.isDeleted ? (
-                      <span />
-                    ) : (
-                      <ReadReceiptTick read={allRead} />
-                    )}
+                    {message.isDeleted ? <span /> : <ReadReceiptTick read={allRead} />}
                     <span className="font-mono text-[10px] text-white/70">
                       {message.editedAt && !message.isDeleted && 'edited · '}
-                      {showTime && formatTime(message.sentAt)}
+                      {formatTime(message.sentAt)}
                     </span>
                   </div>
                 )}
