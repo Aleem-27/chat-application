@@ -7,5 +7,6 @@ public class GroupResponseDTO
   public bool IsDirectMessage { get; set; }
   public DateTime CreatedAt { get; set; }
   public DateTime? LastMessageAt { get; set; }
+  public LastMessagePreviewDTO? LastMessage { get; set; }
   public List<GroupMemberResponseDTO> Members { get; set; } = new();
 }
