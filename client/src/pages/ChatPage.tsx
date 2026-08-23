@@ -25,11 +25,15 @@ function ChatPageContent() {
     clearUnread(groupId)
   }
 
+  function handleGroupClosed(groupId: number) {
+  setSelectedGroupId((current) => (current === groupId ? null : current))
+}
+
   const selectedGroup = groups?.find((g) => g.id === selectedGroupId)
 
   return (
     <div className="flex h-screen bg-canvas">
-      <Sidebar selectedGroupId={selectedGroupId} onSelectGroup={handleSelectGroup} />
+      <Sidebar selectedGroupId={selectedGroupId} onSelectGroup={handleSelectGroup} onGroupClosed={handleGroupClosed} />
       <main className="flex flex-1">
         {selectedGroup ? (
           <ChatThread group={selectedGroup} onBack={() => setSelectedGroupId(null)} />
