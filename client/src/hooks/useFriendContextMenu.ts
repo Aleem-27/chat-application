@@ -2,6 +2,12 @@ import { useState, type MouseEvent } from 'react'
 import { useRemoveFriend, useSendFriendRequestByUserId, useRespondToRequest } from './useFriends'
 import type { RelationshipStatus } from '@/lib/friends'
 
+interface ExtraMenuItem {
+  label: string
+  onClick: () => void
+  danger?: boolean
+}
+
 interface MenuTarget {
   x: number
   y: number
@@ -9,6 +15,7 @@ interface MenuTarget {
   displayName: string
   status: RelationshipStatus
   friendshipId: number | null
+  extraItems?: ExtraMenuItem[]
 }
 
 export function useFriendContextMenu() {
@@ -56,7 +63,7 @@ export function useFriendContextMenu() {
     closeMenu()
   }
 
-  const menuItems = menu
+  const relationshipItems = menu
     ? menu.status === 'friend'
       ? [{ label: 'Remove friend', danger: true, onClick: requestRemove }]
       : menu.status === 'outgoing'
@@ -68,6 +75,8 @@ export function useFriendContextMenu() {
             ]
           : [{ label: 'Add friend', onClick: addFriend }]
     : []
+
+  const menuItems = menu ? [...(menu.extraItems ?? []), ...relationshipItems] : []
 
   return { menu, menuItems, confirmTarget, openMenu, closeMenu, confirmRemove, cancelRemove }
 }

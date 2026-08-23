@@ -9,6 +9,14 @@ export function useGroups() {
   })
 }
 
+export function useHideGroup() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (groupId: number) => groupsApi.hideGroup(groupId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  })
+}
+
 export function useCreateDirectMessage() {
   const queryClient = useQueryClient()
   return useMutation({

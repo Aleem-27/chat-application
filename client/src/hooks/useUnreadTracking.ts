@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { HubConnection } from '@microsoft/signalr'
 import { useUnreadStore } from '@/store/unreadStore'
 import { playNotificationSound } from '@/lib/sound'
+import { toLastMessagePreview } from '@/lib/chat'
 import type { Group, Message } from '@/types/chat'
 
 export function useUnreadTracking(
@@ -17,9 +18,20 @@ export function useUnreadTracking(
     if (!connection || !currentUserId) return
 
     function handleReceiveMessage(message: Message) {
-      queryClient.setQueryData<Group[]>(['groups'], (groups) =>
-        groups?.map((g) => (g.id === message.groupId ? { ...g, lastMessageAt: message.sentAt } : g))
-      )
+      const cached = queryClient.getQueryData<Group[]>(['groups'])
+      const exists = cached?.some((g) => g.id === message.groupId)
+
+      if (!exists) {
+        queryClient.invalidateQueries({ queryKey: ['groups'] })
+      } else {
+        queryClient.setQueryData<Group[]>(['groups'], (groups) =>
+          groups?.map((g) =>
+            g.id === message.groupId
+              ? { ...g, lastMessageAt: message.sentAt, lastMessage: toLastMessagePreview(message) }
+              : g
+          )
+        )
+      }
 
       if (message.senderId === currentUserId) return
       if (message.groupId === selectedGroupId) return
