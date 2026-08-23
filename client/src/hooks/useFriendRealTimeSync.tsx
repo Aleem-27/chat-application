@@ -17,12 +17,14 @@ export function useFriendRealtimeSync(connection: HubConnection | null) {
     connection.on('FriendRequestAccepted', refresh)
     connection.on('FriendRequestDeclined', refresh)
     connection.on('FriendRemoved', refresh)
+    connection.on('FriendRequestCancelled', refresh)
 
     return () => {
       connection.off('FriendRequestReceived', refresh)
       connection.off('FriendRequestAccepted', refresh)
       connection.off('FriendRequestDeclined', refresh)
       connection.off('FriendRemoved', refresh)
+      connection.off('FriendRequestCancelled', refresh)
     }
   }, [connection, queryClient])
 }

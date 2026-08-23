@@ -25,6 +25,14 @@ export function useSendFriendRequestByUserId() {
   })
 }
 
+export function useCancelRequest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: friendsApi.cancelRequest,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['friends'] }),
+  })
+}
+
 export function useRespondToRequest() {
   const queryClient = useQueryClient()
   return useMutation({

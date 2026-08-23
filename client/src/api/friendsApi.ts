@@ -6,6 +6,7 @@ export const friendsApi = {
     apiClient.post<Friendship>('/friends/requests', { email }).then((res) => res.data),
   sendRequestByUserId: (targetUserId: string) =>
     apiClient.post<Friendship>('/friends/requests/by-user', { targetUserId }).then((res) => res.data),
+  cancelRequest: (id: number) => apiClient.delete(`/friends/requests/${id}`),
   accept: (id: number) =>
     apiClient.post<Friendship>(`/friends/requests/${id}/accept`).then((res) => res.data),
   decline: (id: number) =>
