@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { groupsApi } from '@/api/groupsApi'
+import type { Group } from '@/types/chat'
 
 
 export function useGroups() {
@@ -21,6 +22,12 @@ export function useCreateDirectMessage() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: groupsApi.createDirectMessage,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+    onSuccess: (group) => {
+      queryClient.setQueryData<Group[]>(['groups'], (groups) => {
+        if (!groups) return [group]
+        const exists = groups.some((g) => g.id === group.id)
+        return exists ? groups.map((g) => (g.id === group.id ? group : g)) : [...groups, group]
+      })
+    },
   })
 }
