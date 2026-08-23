@@ -74,6 +74,15 @@ public class GroupsController : ControllerBase
     var existingGroupId = await FindExistingDirectMessageGroupId(UserId, dto.TargetUserId);
     if (existingGroupId is not null)
     {
+      var membership = await _db.GroupMembers
+          .FirstOrDefaultAsync(gm => gm.GroupId == existingGroupId && gm.UserId == UserId);
+
+      if (membership is not null && membership.IsHidden)
+      {
+        membership.IsHidden = false;
+        await _db.SaveChangesAsync();
+      }
+
       return Ok(await BuildGroupResponse(existingGroupId.Value));
     }
 
