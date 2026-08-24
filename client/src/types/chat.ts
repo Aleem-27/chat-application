@@ -10,10 +10,24 @@ export interface Group {
   id: number
   name: string
   isDirectMessage: boolean
+  iconUrl: string | null
   createdAt: string
   members: GroupMember[]
   lastMessage: LastMessagePreview | null
   lastMessageAt: string | null
+}
+
+export interface CreateGroupPayload {
+  name: string
+  iconUrl?: string | null
+  memberUserIds: string[]
+}
+
+export interface UpdateGroupPayload {
+  name?: string
+  iconUrl?: string | null
+  addMemberUserIds?: string[]
+  assignAdminUserId?: string
 }
 
 export interface Message {
