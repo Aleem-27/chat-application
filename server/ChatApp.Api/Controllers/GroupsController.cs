@@ -98,6 +98,8 @@ public class GroupsController : ControllerBase
       }
     }
 
+    var adminChanged = false;
+
     if (!string.IsNullOrWhiteSpace(dto.AssignAdminUserId) && dto.AssignAdminUserId != UserId)
     {
       var targetMembership = await _db.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && gm.UserId == dto.AssignAdminUserId);
@@ -106,6 +108,7 @@ public class GroupsController : ControllerBase
 
       targetMembership.Role = GroupMemberRole.Admin;
       myMembership.Role = GroupMemberRole.Member;
+      adminChanged = true;
     }
 
     await _db.SaveChangesAsync();
@@ -117,6 +120,11 @@ public class GroupsController : ControllerBase
       var view = await BuildGroupResponse(id, memberId);
       var eventName = newlyAddedUserIds.Contains(memberId) ? "GroupCreated" : "GroupUpdated";
       await _hub.Clients.User(memberId).SendAsync(eventName, view);
+
+      if (adminChanged)
+      {
+        await _hub.Clients.User(memberId).SendAsync("GroupAdminChanged", view);
+      }
     }
 
     return Ok(await BuildGroupResponse(id, UserId));
