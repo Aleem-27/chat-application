@@ -17,12 +17,21 @@ export function useGroupRealtimeSync(connection: HubConnection | null) {
       })
     }
 
+    function handleAdminChanged(group: Group) {
+      upsertGroup(group)
+      // Force a real refetch too — role changes affect what the context menu
+      // is allowed to show, so this can't be left to a best-effort cache merge.
+      queryClient.invalidateQueries({ queryKey: ['groups'] })
+    }
+
     connection.on('GroupCreated', upsertGroup)
     connection.on('GroupUpdated', upsertGroup)
+    connection.on('GroupAdminChanged', handleAdminChanged)
 
     return () => {
       connection.off('GroupCreated', upsertGroup)
       connection.off('GroupUpdated', upsertGroup)
+      connection.off('GroupAdminChanged', handleAdminChanged)
     }
   }, [connection, queryClient])
 }
