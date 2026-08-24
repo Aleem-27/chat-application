@@ -5,6 +5,7 @@ import { useMessageStream } from '@/hooks/useMessageStream'
 import { Sidebar } from '@/components/chat/Sidebar'
 import { ChatThread } from '@/components/chat/ChatThread'
 import { useFriendRealtimeSync } from '@/hooks/useFriendRealTimeSync'
+import { useGroupRealtimeSync } from '@/hooks/useGroupRealtimeSync'
 import { useUnreadTracking } from '@/hooks/useUnreadTracking'
 import { useUnreadStore } from '@/store/unreadStore'
 import { useCurrentUser } from '@/hooks/useAuth'
@@ -18,6 +19,7 @@ function ChatPageContent() {
 
   useMessageStream(connection)
   useFriendRealtimeSync(connection)
+  useGroupRealtimeSync(connection)
   useUnreadTracking(connection, user?.id, selectedGroupId)
 
   function handleSelectGroup(groupId: number) {
