@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Users as UsersIcon, X } from 'lucide-react'
+import { Plus, Search, Users as UsersIcon, X } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useAuth'
 import { useGroups, useHideGroup } from '@/hooks/useGroups'
 import { useFriends, usePendingRequests } from '@/hooks/useFriends'
@@ -17,6 +17,8 @@ import { FriendSearchResults } from './FriendSearchResults'
 import { FriendsView } from './FriendsView'
 import { ProfilePanel } from './ProfilePanel'
 import type { Group } from '@/types/chat'
+import { useLeaveGroup } from '@/hooks/useGroups'
+import { GroupModal } from './GroupModal'
 
 interface SidebarProps {
   selectedGroupId: number | null
@@ -36,6 +38,10 @@ export function Sidebar({ selectedGroupId, onSelectGroup, onGroupClosed }: Sideb
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds)
   const unreadCounts = useUnreadStore((s) => s.unreadCounts)
   const hideGroup = useHideGroup()
+  const [groupModalGroupId, setGroupModalGroupId] = useState<number | null | undefined>(undefined) // undefined = closed
+  const [groupMenu, setGroupMenu] = useState<{ x: number; y: number; group: Group; isAdmin: boolean } | null>(null)
+  const [leaveTarget, setLeaveTarget] = useState<Group | null>(null)
+  const leaveGroup = useLeaveGroup()
   const [friendsViewOpen, setFriendsViewOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -57,13 +63,22 @@ export function Sidebar({ selectedGroupId, onSelectGroup, onGroupClosed }: Sideb
     <aside className="flex h-full w-full flex-col border-r border-line bg-panel text-white md:w-72">
       <div className="flex items-center justify-between px-5 pt-5">
         <h1 className="font-display text-2xl">Converseo</h1>
-        <button
-          onClick={() => setFriendsViewOpen((open) => !open)}
-          aria-label="Friends"
-          className="text-white/60 hover:text-white"
-        >
-          <UsersIcon size={18} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setGroupModalGroupId(null)}
+            aria-label="Create a group"
+            className="text-white/60 hover:text-white"
+          >
+            <Plus size={18} />
+          </button>
+          <button
+            onClick={() => setFriendsViewOpen((open) => !open)}
+            aria-label="Friends"
+            className="text-white/60 hover:text-white"
+          >
+            <UsersIcon size={18} />
+          </button>
+        </div>
       </div>
 
       {friendsViewOpen ? (
@@ -105,38 +120,45 @@ export function Sidebar({ selectedGroupId, onSelectGroup, onGroupClosed }: Sideb
               {sortedGroups.map((group) => {
                 const other = user ? otherMember(group, user.id) : undefined
                 const displayName = group.isDirectMessage ? (other?.displayName ?? group.name) : group.name
+                const avatarUrl = group.isDirectMessage ? (other?.avatarUrl ?? null) : group.iconUrl
                 const isOnline = group.isDirectMessage && !!other && onlineUserIds.has(other.userId)
                 const unread = unreadCounts[group.id] ?? 0
+                const myRole = user ? group.members.find((m) => m.userId === user.id)?.role : undefined
 
                 return (
                   <button
                     key={group.id}
                     onClick={() => onSelectGroup(group.id)}
                     onContextMenu={(e) => {
-                      if (!group.isDirectMessage || !other) return
-                      const { status, friendshipId } = getRelationshipStatus(other.userId, friends, pendingRequests)
-                      openMenu(e, {
-                        userId: other.userId,
-                        displayName: other.displayName,
-                        status,
-                        friendshipId,
-                        extraItems: [
-                          {
-                            label: 'Close conversation',
-                            onClick: () => {
-                              hideGroup.mutate(group.id)
-                              if (group.id === selectedGroupId) onGroupClosed(group.id)
+                      if (group.isDirectMessage) {
+                        if (!other) return
+                        const { status, friendshipId } = getRelationshipStatus(other.userId, friends, pendingRequests)
+                        openMenu(e, {
+                          userId: other.userId,
+                          displayName: other.displayName,
+                          status,
+                          friendshipId,
+                          extraItems: [
+                            {
+                              label: 'Close conversation',
+                              onClick: () => {
+                                hideGroup.mutate(group.id)
+                                if (group.id === selectedGroupId) onGroupClosed(group.id)
+                              },
                             },
-                          },
-                        ],
-                      })
+                          ],
+                        })
+                      } else {
+                        e.preventDefault()
+                        setGroupMenu({ x: e.clientX, y: e.clientY, group, isAdmin: myRole === 'Admin' })
+                      }
                     }}
                     className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-white/10 ${
                       group.id === selectedGroupId ? 'bg-white/10' : ''
                     }`}
                   >
                     <span className="relative shrink-0">
-                      <Avatar name={displayName} size="sm" />
+                      <Avatar name={displayName} avatarUrl={avatarUrl} size="sm" />
                       <OnlineDot online={isOnline} />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -169,6 +191,41 @@ export function Sidebar({ selectedGroupId, onSelectGroup, onGroupClosed }: Sideb
           confirmLabel="Remove"
           onCancel={cancelRemove}
           onConfirm={confirmRemove}
+        />
+      )}
+      {groupMenu && (
+        <ContextMenu
+          x={groupMenu.x}
+          y={groupMenu.y}
+          onClose={() => setGroupMenu(null)}
+          items={[
+            ...(groupMenu.isAdmin
+              ? [{ label: 'Edit group', onClick: () => setGroupModalGroupId(groupMenu.group.id) }]
+              : []),
+            { label: 'Leave group', danger: true, onClick: () => setLeaveTarget(groupMenu.group) },
+          ]}
+        />
+      )}
+
+      {leaveTarget && (
+        <ConfirmDialog
+          title="Leave group?"
+          message={`You'll stop receiving messages from "${leaveTarget.name}" until someone adds you back.`}
+          confirmLabel="Leave"
+          onCancel={() => setLeaveTarget(null)}
+          onConfirm={() => {
+            leaveGroup.mutate(leaveTarget.id)
+            if (leaveTarget.id === selectedGroupId) onGroupClosed(leaveTarget.id)
+            setLeaveTarget(null)
+          }}
+        />
+      )}
+
+      {groupModalGroupId !== undefined && (
+        <GroupModal
+          groupId={groupModalGroupId}
+          onClose={() => setGroupModalGroupId(undefined)}
+          onOpenConversation={onSelectGroup}
         />
       )}
 
