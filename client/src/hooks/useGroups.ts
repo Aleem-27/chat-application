@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { groupsApi } from '@/api/groupsApi'
-import type { Group } from '@/types/chat'
+import type { Group, UpdateGroupPayload } from '@/types/chat'
 
 
 export function useGroups() {
