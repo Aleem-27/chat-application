@@ -1,5 +1,6 @@
 using System.Text;
 using Amazon.S3;
+using ChatApp.Api;
 using ChatApp.Api.Data;
 using ChatApp.Api.Hubs;
 using ChatApp.Api.Models;
