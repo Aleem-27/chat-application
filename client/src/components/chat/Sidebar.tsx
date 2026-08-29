@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Search, Users as UsersIcon, X } from 'lucide-react'
+import { Plus, Search, Settings, Users as UsersIcon, X } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useAuth'
 import { useGroups, useHideGroup } from '@/hooks/useGroups'
 import { useFriends, usePendingRequests } from '@/hooks/useFriends'
@@ -238,6 +238,7 @@ export function Sidebar({ selectedGroupId, onSelectGroup, onGroupClosed }: Sideb
           <p className="truncate text-sm font-medium">{user?.displayName}</p>
           <p className="truncate text-xs text-white/50">{user?.email}</p>
         </div>
+        <Settings size={16} className="text-white/50" />
       </button>
 
       {profileOpen && <ProfilePanel onClose={() => setProfileOpen(false)} />}
