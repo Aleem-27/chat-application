@@ -1,4 +1,5 @@
 ﻿using ChatApp.Api.DTOs;
+using ChatApp.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,56 +11,34 @@ namespace ChatApp.Api.Controllers;
 public class FilesController : ControllerBase
 {
   private static readonly string[] AllowedExtensions =
-    { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".txt", ".zip", ".docx", ".xlsx", ".mp4", ".webm", ".mov", ".avi"};
+      { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".txt", ".zip", ".docx", ".xlsx", ".mp4", ".webm", ".mov" };
 
-  private const long MaxFileSizeBytes = 50 * 1024 * 1024; // 50 MB
+  private const long MaxFileSizeBytes = 10 * 1024 * 1024;
 
-  private readonly IWebHostEnvironment _env;
+  private readonly IFileStorageService _storage;
 
-  public FilesController(IWebHostEnvironment env)
-  {
-    _env = env;
-  }
+  public FilesController(IFileStorageService storage) => _storage = storage;
 
   [HttpPost("upload")]
   [RequestSizeLimit(MaxFileSizeBytes)]
   public async Task<IActionResult> Upload(IFormFile file)
   {
-    if (file.Length == 0)
-    {
-      return BadRequest(new { message = "No file provided." });
-    }
-
-    if (file.Length > MaxFileSizeBytes)
-    {
-      return BadRequest(new { message = "File exceeds the 10 MB limit." });
-    }
+    if (file.Length == 0) return BadRequest(new { message = "No file provided." });
+    if (file.Length > MaxFileSizeBytes) return BadRequest(new { message = "File exceeds the 10 MB limit." });
 
     var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
     if (!AllowedExtensions.Contains(extension))
-    {
       return BadRequest(new { message = $"File type '{extension}' is not allowed." });
-    }
-
-    var uploadsPath = Path.Combine(_env.WebRootPath, "uploads");
-    Directory.CreateDirectory(uploadsPath);
 
     var storedFileName = $"{Guid.NewGuid()}{extension}";
-    var fullPath = Path.Combine(uploadsPath, storedFileName);
+    var fileUrl = await _storage.UploadAsync(file, storedFileName);
 
-    await using (var stream = new FileStream(fullPath, FileMode.Create))
+    return Ok(new FileUploadResponseDTO
     {
-      await file.CopyToAsync(stream);
-    }
-
-    var response = new FileUploadResponseDTO
-    {
-      FileUrl = $"/uploads/{storedFileName}",
+      FileUrl = fileUrl,
       FileName = file.FileName,
       FileSizeBytes = file.Length,
       FileContentType = file.ContentType
-    };
-
-    return Ok(response);
+    });
   }
 }
