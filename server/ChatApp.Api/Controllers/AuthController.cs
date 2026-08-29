@@ -17,13 +17,15 @@ public class AuthController : ControllerBase
   private readonly TokenService _tokenService;
   private readonly AppDbContext _db;
   private readonly IConfiguration _config;
+  private readonly IWebHostEnvironment _env;
 
-  public AuthController(UserManager<ApplicationUser> userManager, TokenService tokenService, AppDbContext db, IConfiguration config)
+  public AuthController(UserManager<ApplicationUser> userManager, TokenService tokenService, AppDbContext db, IConfiguration config, IWebHostEnvironment env)
   {
     _userManager = userManager;
     _tokenService = tokenService;
     _db = db;
     _config = config;
+    _env = env;
   }
 
   [HttpPost("register")]
@@ -112,8 +114,8 @@ public class AuthController : ControllerBase
       }
     }
 
-    Response.Cookies.Delete("accessToken");
-    Response.Cookies.Delete("refreshToken", new CookieOptions { Path = "api/auth/refresh" });
+    Response.Cookies.Delete("accessToken", new CookieOptions { SameSite = _env.IsDevelopment() ? SameSiteMode.Strict : SameSiteMode.None, Secure = true });
+    Response.Cookies.Delete("refreshToken", new CookieOptions { Path = "/api/auth/refresh", SameSite = _env.IsDevelopment() ? SameSiteMode.Strict : SameSiteMode.None, Secure = true });
 
     return NoContent();
   }
@@ -163,7 +165,7 @@ public class AuthController : ControllerBase
       }
 
       user.Email = dto.Email;
-      user.UserName = dto.Email; // kept in sync — UserName == Email since registration
+      user.UserName = dto.Email;
     }
 
     var result = await _userManager.UpdateAsync(user);
@@ -207,21 +209,24 @@ public class AuthController : ControllerBase
 
   private void SetAuthCookies(string accessToken, RefreshToken refreshToken)
   {
+    var accessMinutes = double.Parse(_config["Jwt:AccessTokenExpiryMinutes"]!);
+    var sameSite = _env.IsDevelopment() ? SameSiteMode.Strict : SameSiteMode.None;
+
     Response.Cookies.Append("accessToken", accessToken, new CookieOptions
     {
       HttpOnly = true,
       Secure = true,
-      SameSite = SameSiteMode.Strict,
-      Expires = DateTime.UtcNow.AddMinutes(double.Parse(_config["Jwt:AccessTokenExpiryMinutes"]!))
+      SameSite = sameSite,
+      Expires = DateTime.UtcNow.AddMinutes(accessMinutes)
     });
 
     Response.Cookies.Append("refreshToken", refreshToken.Token, new CookieOptions
     {
       HttpOnly = true,
       Secure = true,
-      SameSite = SameSiteMode.Strict,
+      SameSite = sameSite,
       Expires = refreshToken.ExpiresAt,
-      Path = "api/auth/refresh"
+      Path = "/api/auth/refresh"
     });
   }
 
