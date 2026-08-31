@@ -8,4 +8,5 @@ public class ApplicationUser : IdentityUser
   public string? AvatarUrl { get; set; }
   public bool IsOnline { get; set; }
   public DateTime? LastSeenAt { get; set; }
+  public bool IsDemoAccount { get; set; }
 }
