@@ -8,23 +8,29 @@ namespace ChatApp.Api;
 public static class DemoSeeder
 {
   private const string Demo1Email = "demo@converseo.app";
-  private const string Demo1Password = "DemoPass123!";
+  private const string Demo1Password = "Demo#Portfolio2026!";
   private const string Demo1DisplayName = "Demo Recruiter";
 
   private const string Demo2Email = "demo2@converseo.app";
-  private const string Demo2Password = "DemoPass123!";
+  private const string Demo2Password = "Demo2#Portfolio2026!";
   private const string Demo2DisplayName = "Demo Teammate";
 
   private const string BotEmail = "bot@converseo.app";
 
-  public static async Task SeedAsync(IServiceProvider services)
+  public static async Task SeedAsync(AppDbContext db, UserManager<ApplicationUser> userManager)
   {
-    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-    var db = services.GetRequiredService<AppDbContext>();
+    await ResetAndSeedAsync(db, userManager);
+  }
 
+  // Called at demo login too — wipes the shared demo world back to its
+  // original state so every new demo session starts clean.
+  public static async Task ResetAndSeedAsync(AppDbContext db, UserManager<ApplicationUser> userManager)
+  {
     var demo1 = await EnsureDemoUserAsync(userManager, Demo1Email, Demo1Password, Demo1DisplayName);
     var demo2 = await EnsureDemoUserAsync(userManager, Demo2Email, Demo2Password, Demo2DisplayName);
     var bot = await EnsureBotUserAsync(userManager);
+
+    await WipeDemoDataAsync(db, demo1.Id, demo2.Id);
 
     await EnsureWelcomeDmAsync(db, bot, demo1,
         $"Welcome to Converseo! Try creating a group, sending a file, or adding a friend — add {Demo2Email} to test friend requests and DMs with a second live demo account.");
@@ -39,14 +45,21 @@ public static class DemoSeeder
     var user = await userManager.FindByEmailAsync(email);
     if (user is null)
     {
-      user = new ApplicationUser { UserName = email, Email = email, DisplayName = displayName, EmailConfirmed = true };
+      user = new ApplicationUser
+      {
+        UserName = email,
+        Email = email,
+        DisplayName = displayName,
+        EmailConfirmed = true,
+        IsDemoAccount = true
+      };
       await userManager.CreateAsync(user, password);
     }
     else
     {
-      // Reset to a known-good state on every restart — a public shared
-      // login can otherwise get its password changed and locked out.
       user.DisplayName = displayName;
+      user.AvatarUrl = null; // reset any avatar a previous recruiter uploaded
+      user.IsDemoAccount = true;
       await userManager.UpdateAsync(user);
       var token = await userManager.GeneratePasswordResetTokenAsync(user);
       await userManager.ResetPasswordAsync(user, token, password);
@@ -65,14 +78,32 @@ public static class DemoSeeder
     return bot;
   }
 
+  private static async Task WipeDemoDataAsync(AppDbContext db, string demo1Id, string demo2Id)
+  {
+    var demoIds = new[] { demo1Id, demo2Id };
+
+    var groupIds = await db.GroupMembers
+        .Where(gm => demoIds.Contains(gm.UserId))
+        .Select(gm => gm.GroupId)
+        .Distinct()
+        .ToListAsync();
+
+    if (groupIds.Count > 0)
+    {
+      var groups = await db.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
+      db.Groups.RemoveRange(groups); // cascades to members, messages, read receipts
+    }
+
+    var friendships = await db.Friendships
+        .Where(f => demoIds.Contains(f.RequesterId) || demoIds.Contains(f.AddresseeId))
+        .ToListAsync();
+    db.Friendships.RemoveRange(friendships);
+
+    await db.SaveChangesAsync();
+  }
+
   private static async Task EnsureWelcomeDmAsync(AppDbContext db, ApplicationUser bot, ApplicationUser demoUser, string message)
   {
-    var alreadyFriends = await db.Friendships.AnyAsync(f =>
-        (f.RequesterId == demoUser.Id && f.AddresseeId == bot.Id) ||
-        (f.RequesterId == bot.Id && f.AddresseeId == demoUser.Id));
-
-    if (alreadyFriends) return;
-
     db.Friendships.Add(new Friendship
     {
       RequesterId = bot.Id,
