@@ -140,7 +140,9 @@ if (builder.Configuration.GetValue<bool>("ApplyMigrationsOnStartup"))
 if (builder.Configuration.GetValue<bool>("SeedDemoUser"))
 {
   using var scope = app.Services.CreateScope();
-  await DemoSeeder.SeedAsync(scope.ServiceProvider);
+  var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+  var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+  await DemoSeeder.SeedAsync(db, userManager);
 }
 
 app.UseForwardedHeaders();
