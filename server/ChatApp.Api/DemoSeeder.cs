@@ -7,36 +7,40 @@ namespace ChatApp.Api;
 
 public static class DemoSeeder
 {
-  private const string Demo1Email = "demo@converseo.app";
-  private const string Demo1Password = "Demo#Portfolio2026!";
-  private const string Demo1DisplayName = "Demo Recruiter";
-
-  private const string Demo2Email = "demo2@converseo.app";
-  private const string Demo2Password = "Demo2#Portfolio2026!";
-  private const string Demo2DisplayName = "Demo Teammate";
+  private static readonly (string Email, string Password, string DisplayName)[] DemoAccounts =
+  {
+        ("demo@converseo.app", "Demo#Portfolio2026!", "Demo Recruiter"),
+        ("demo2@converseo.app", "Demo2#Portfolio2026!", "Demo Teammate"),
+    };
 
   private const string BotEmail = "bot@converseo.app";
 
-  public static async Task SeedAsync(AppDbContext db, UserManager<ApplicationUser> userManager)
-  {
-    await ResetAndSeedAsync(db, userManager);
-  }
+  public static bool IsDemoLogin(string email, string password) =>
+      DemoAccounts.Any(a =>
+          a.Email.Equals(email, StringComparison.OrdinalIgnoreCase) && a.Password == password);
 
-  // Called at demo login too — wipes the shared demo world back to its
-  // original state so every new demo session starts clean.
+  public static async Task SeedAsync(AppDbContext db, UserManager<ApplicationUser> userManager) =>
+      await ResetAndSeedAsync(db, userManager);
+
+  // Wipes every demo account's data and re-seeds a clean welcome state.
+  // Called at container startup AND on every successful demo login.
   public static async Task ResetAndSeedAsync(AppDbContext db, UserManager<ApplicationUser> userManager)
   {
-    var demo1 = await EnsureDemoUserAsync(userManager, Demo1Email, Demo1Password, Demo1DisplayName);
-    var demo2 = await EnsureDemoUserAsync(userManager, Demo2Email, Demo2Password, Demo2DisplayName);
+    var users = new List<ApplicationUser>();
+    foreach (var account in DemoAccounts)
+    {
+      users.Add(await EnsureDemoUserAsync(userManager, account.Email, account.Password, account.DisplayName));
+    }
+
     var bot = await EnsureBotUserAsync(userManager);
+    await WipeDemoDataAsync(db, users.Select(u => u.Id).ToArray());
 
-    await WipeDemoDataAsync(db, demo1.Id, demo2.Id);
-
-    await EnsureWelcomeDmAsync(db, bot, demo1,
-        $"Welcome to Converseo! Try creating a group, sending a file, or adding a friend — add {Demo2Email} to test friend requests and DMs with a second live demo account.");
-
-    await EnsureWelcomeDmAsync(db, bot, demo2,
-        $"Welcome to Converseo! This is the second demo account — add {Demo1Email} as a friend to try the full flow from both sides.");
+    for (var i = 0; i < users.Count; i++)
+    {
+      var otherEmail = DemoAccounts[1 - i].Email;
+      await EnsureWelcomeDmAsync(db, bot, users[i],
+          $"Welcome to Converseo! Try creating a group, sending a file, or adding a friend — add {otherEmail} to test friend requests and DMs with a second live demo account.");
+    }
   }
 
   private static async Task<ApplicationUser> EnsureDemoUserAsync(
@@ -58,7 +62,7 @@ public static class DemoSeeder
     else
     {
       user.DisplayName = displayName;
-      user.AvatarUrl = null; // reset any avatar a previous recruiter uploaded
+      user.AvatarUrl = null;
       user.IsDemoAccount = true;
       await userManager.UpdateAsync(user);
       var token = await userManager.GeneratePasswordResetTokenAsync(user);
@@ -78,10 +82,8 @@ public static class DemoSeeder
     return bot;
   }
 
-  private static async Task WipeDemoDataAsync(AppDbContext db, string demo1Id, string demo2Id)
+  private static async Task WipeDemoDataAsync(AppDbContext db, string[] demoIds)
   {
-    var demoIds = new[] { demo1Id, demo2Id };
-
     var groupIds = await db.GroupMembers
         .Where(gm => demoIds.Contains(gm.UserId))
         .Select(gm => gm.GroupId)
@@ -91,7 +93,7 @@ public static class DemoSeeder
     if (groupIds.Count > 0)
     {
       var groups = await db.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
-      db.Groups.RemoveRange(groups); // cascades to members, messages, read receipts
+      db.Groups.RemoveRange(groups);
     }
 
     var friendships = await db.Friendships

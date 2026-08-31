@@ -57,24 +57,28 @@ public class AuthController : ControllerBase
   [HttpPost("login")]
   public async Task<IActionResult> Login(LoginDTO dto)
   {
+    if (DemoSeeder.IsDemoLogin(dto.Email, dto.Password))
+    {
+      await DemoSeeder.ResetAndSeedAsync(_db, _userManager);
+      var demoUser = await _userManager.FindByEmailAsync(dto.Email);
+      await IssueTokensAsync(demoUser!);
+      return Ok(MapToUserResponse(demoUser!));
+    }
+
     var user = await _userManager.FindByEmailAsync(dto.Email);
     if (user is null)
+    {
       return Unauthorized(new { message = "Invalid email or password." });
+    }
 
     var passwordValid = await _userManager.CheckPasswordAsync(user, dto.Password);
     if (!passwordValid)
-      return Unauthorized(new { message = "Invalid email or password." });
-
-    if (user.IsDemoAccount)
     {
-      // Reset the whole shared demo world on every demo login, so each
-      // visitor starts clean regardless of what a previous one changed
-      await DemoSeeder.ResetAndSeedAsync(_db, _userManager);
-      user = await _userManager.FindByEmailAsync(dto.Email); 
+      return Unauthorized(new { message = "Invalid email or password." });
     }
 
-    await IssueTokensAsync(user!);
-    return Ok(MapToUserResponse(user!));
+    await IssueTokensAsync(user);
+    return Ok(MapToUserResponse(user));
   }
 
   [HttpPost("refresh")]
