@@ -29,6 +29,9 @@ export function DemoLoginButtons() {
           Log in as {account.label}
         </button>
       ))}
+      <p className="text-center text-xs text-ink-soft">
+        Demo accounts reset to a clean state on every login.
+      </p>
     </div>
   )
 }
