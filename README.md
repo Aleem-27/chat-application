@@ -30,7 +30,7 @@ The login page also has one-click buttons for both accounts.
 
 ## Demo Video
 
-<!-- Add a video link or embed here, e.g.: -->
+<!-- Add a video link or embed here, for e.g.: -->
 <!-- [Watch a walkthrough](https://your-video-link) -->
 
 ## Features
@@ -50,12 +50,11 @@ The login page also has one-click buttons for both accounts.
 
 ## Tech Stack
 
-**Backend:** ASP.NET Core 10, SignalR, Entity Framework Core, ASP.NET Core Identity, SQL Server
-
-**Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, TanStack Query, Zustand, React Router
-
-**Infrastructure:** Cloudflare Pages (frontend), Render (backend), Azure SQL Database (data), Cloudflare R2 (file storage)
-
+| Layer | Technologies |
+|---|---|
+| Backend | ASP.NET Core 10, SignalR, Entity Framework Core, ASP.NET Core Identity, SQL Server |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS v4, TanStack Query, Zustand, React Router |
+| Infrastructure | Cloudflare Pages (frontend), Render (backend), Azure SQL Database (data), Cloudflare R2 (file storage) |
 
 ## Local Development Setup
 
