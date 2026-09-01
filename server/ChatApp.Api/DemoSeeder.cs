@@ -9,9 +9,9 @@ public static class DemoSeeder
 {
   private static readonly (string Email, string Password, string DisplayName)[] DemoAccounts =
   {
-        ("demo@converseo.app", "Demo#Portfolio2026!", "Demo Recruiter"),
-        ("demo2@converseo.app", "Demo2#Portfolio2026!", "Demo Teammate"),
-    };
+    ("demo@converseo.app", "DemoPass123!", "Demo Recruiter"),
+    ("demo2@converseo.app", "DemoPass123!", "Demo Teammate"),
+  };
 
   private const string BotEmail = "bot@converseo.app";
 
