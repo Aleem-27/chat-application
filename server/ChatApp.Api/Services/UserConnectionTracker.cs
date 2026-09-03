@@ -50,4 +50,14 @@ public class UserConnectionTracker : IUserConnectionTracker
       return _userConnections.Keys.ToList();
     }
   }
+
+  public IReadOnlyCollection<string> GetConnectionIds(string userId)
+  {
+    lock (_lock)
+    {
+      return _userConnections.TryGetValue(userId, out var connections)
+          ? connections.ToList()
+          : Array.Empty<string>();
+    }
+  }
 }

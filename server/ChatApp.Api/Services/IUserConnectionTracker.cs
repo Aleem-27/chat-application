@@ -6,4 +6,5 @@ public interface IUserConnectionTracker
   bool RemoveConnection(string userId, string connectionId);
 
   IReadOnlyCollection<string> GetOnlineUserIds();
+  IReadOnlyCollection<string> GetConnectionIds(string userId);
 }
