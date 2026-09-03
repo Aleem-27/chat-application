@@ -55,6 +55,8 @@ public class GroupsController : ControllerBase
     _db.Groups.Add(group);
     await _db.SaveChangesAsync();
 
+    await JoinLiveConnectionsToGroupAsync(group.Id, group.Members.Select(m => m.UserId));
+
     foreach (var member in group.Members.Where(m => m.UserId != UserId))
     {
       var view = await BuildGroupResponse(group.Id, member.UserId);
@@ -68,18 +70,33 @@ public class GroupsController : ControllerBase
   public async Task<IActionResult> UpdateGroup(int id, UpdateGroupDTO dto)
   {
     var group = await _db.Groups.FirstOrDefaultAsync(g => g.Id == id);
-    if (group is null) return NotFound();
-    if (group.IsDirectMessage) return BadRequest(new { message = "Direct messages can't be edited." });
+    if (group is null)
+    {
+      return NotFound();
+    }
+
+    if (group.IsDirectMessage)
+    {
+      return BadRequest(new { message = "Direct messages can't be edited." });
+    }
 
     var myMembership = await _db.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && gm.UserId == UserId);
-    if (myMembership is null) return Forbid();
+    if (myMembership is null)
+    {
+      return Forbid();
+    }
+
     if (myMembership.Role != GroupMemberRole.Admin) return Forbid();
 
     if (!string.IsNullOrWhiteSpace(dto.Name))
+    {
       group.Name = dto.Name;
+    }
 
     if (dto.IconUrl is not null)
+    { 
       group.IconUrl = dto.IconUrl;
+    }
 
     var newlyAddedUserIds = new List<string>();
 
@@ -90,8 +107,15 @@ public class GroupsController : ControllerBase
 
       foreach (var candidateId in dto.AddMemberUserIds.Distinct())
       {
-        if (existingMemberIds.Contains(candidateId)) continue;
-        if (!friendIds.Contains(candidateId)) continue; // skip non-friends rather than failing the whole edit
+        if (existingMemberIds.Contains(candidateId))
+        {
+          continue;
+        }
+
+        if (!friendIds.Contains(candidateId))
+        {
+          continue; // skip non-friends rather than failing the whole edit
+        }
 
         _db.GroupMembers.Add(new GroupMember { GroupId = id, UserId = candidateId, Role = GroupMemberRole.Member });
         newlyAddedUserIds.Add(candidateId);
@@ -104,7 +128,9 @@ public class GroupsController : ControllerBase
     {
       var targetMembership = await _db.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && gm.UserId == dto.AssignAdminUserId);
       if (targetMembership is null)
+      {
         return BadRequest(new { message = "That user isn't a member of this group." });
+      }
 
       targetMembership.Role = GroupMemberRole.Admin;
       myMembership.Role = GroupMemberRole.Member;
@@ -112,6 +138,11 @@ public class GroupsController : ControllerBase
     }
 
     await _db.SaveChangesAsync();
+
+    if (newlyAddedUserIds.Count > 0)
+    {
+      await JoinLiveConnectionsToGroupAsync(id, newlyAddedUserIds);
+    }
 
     var allMemberIds = await _db.GroupMembers.Where(gm => gm.GroupId == id).Select(gm => gm.UserId).ToListAsync();
 
@@ -209,6 +240,8 @@ public class GroupsController : ControllerBase
 
     _db.Groups.Add(group);
     await _db.SaveChangesAsync();
+
+    await JoinLiveConnectionsToGroupAsync(group.Id, new[] { UserId, dto.TargetUserId });
 
     return CreatedAtAction(nameof(GetGroup), new { id = group.Id }, await BuildGroupResponse(group.Id, UserId));
   }
@@ -369,5 +402,17 @@ public class GroupsController : ControllerBase
       LastMessageAt = lastMessage?.SentAt,
       LastMessage = lastMessage
     };
+  }
+
+  private async Task JoinLiveConnectionsToGroupAsync(int groupId, IEnumerable<string> userIds)
+  {
+    foreach (var userId in userIds)
+    {
+      var connectionIds = _connectionTracker.GetConnectionIds(userId);
+      foreach (var connectionId in connectionIds)
+      {
+        await _hub.Groups.AddToGroupAsync(connectionId, ChatHub.GroupName(groupId));
+      }
+    }
   }
 }
