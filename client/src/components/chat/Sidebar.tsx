@@ -35,6 +35,7 @@ export function Sidebar({ selectedGroupId, onSelectGroup, onGroupClosed }: Sideb
   const { data: groups, isLoading } = useGroups()
   const { data: friends } = useFriends()
   const { data: pendingRequests } = usePendingRequests()
+  const incomingCount = pendingRequests?.filter((r) => r.isIncoming).length ?? 0
   const onlineUserIds = usePresenceStore((s) => s.onlineUserIds)
   const unreadCounts = useUnreadStore((s) => s.unreadCounts)
   const hideGroup = useHideGroup()
@@ -74,9 +75,14 @@ export function Sidebar({ selectedGroupId, onSelectGroup, onGroupClosed }: Sideb
           <button
             onClick={() => setFriendsViewOpen((open) => !open)}
             aria-label="Friends"
-            className="text-white/60 hover:text-white"
+            className="relative text-white/60 hover:text-white"
           >
             <UsersIcon size={18} />
+            {incomingCount > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold text-white">
+                {incomingCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
