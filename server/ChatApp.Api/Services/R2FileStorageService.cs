@@ -1,5 +1,5 @@
 ﻿using Amazon.S3;
-using Amazon.S3.Transfer;
+using Amazon.S3.Model;
 
 namespace ChatApp.Api.Services;
 
@@ -17,10 +17,18 @@ public class R2FileStorageService : IFileStorageService
   public async Task<string> UploadAsync(IFormFile file, string storedFileName)
   {
     var bucket = _config["R2:BucketName"]!;
-    var transfer = new TransferUtility(_s3);
 
-    await using var stream = file.OpenReadStream();
-    await transfer.UploadAsync(stream, bucket, storedFileName);
+    var request = new PutObjectRequest
+    {
+      BucketName = bucket,
+      Key = storedFileName,
+      InputStream = file.OpenReadStream(),
+      ContentType = file.ContentType,
+      DisablePayloadSigning = true,          // R2 doesn't support AWS's Streaming SigV4
+      DisableDefaultChecksumValidation = true // R2 doesn't implement AWS's newer checksum headers
+    };
+
+    await _s3.PutObjectAsync(request);
 
     var publicBase = _config["R2:PublicBaseUrl"]!.TrimEnd('/');
     return $"{publicBase}/{storedFileName}";
