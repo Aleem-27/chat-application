@@ -155,6 +155,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+app.UseExceptionHandler(errorApp =>
+{
+  errorApp.Run(async context =>
+  {
+    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsync("{\"message\":\"An unexpected error occurred.\"}");
+  });
+});
 app.UseCors("ClientApp");
 app.UseAuthentication();
 app.UseAuthorization();
