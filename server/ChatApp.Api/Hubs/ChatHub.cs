@@ -275,5 +275,5 @@ public class ChatHub : Hub
     await Clients.OthersInGroup(GroupName(groupId)).SendAsync("UserStoppedTyping", groupId, UserId);
   }
 
-  private static string GroupName(int groupId) => $"group-{groupId}";
+  public static string GroupName(int groupId) => $"group-{groupId}";
 }
