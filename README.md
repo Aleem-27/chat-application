@@ -10,8 +10,8 @@ Two demo accounts are available for logging in immediately, no registration requ
 
 | Account | Email | Password |
 |---|---|---|
-| Demo 1 | `demo@converseo.app` | `Demo#Portfolio2026!` |
-| Demo 2 | `demo2@converseo.app` | `Demo2#Portfolio2026!` |
+| Demo 1 | `demo@converseo.app` | `DemoPass123!` |
+| Demo 2 | `demo2@converseo.app` | `DemoPass123!` |
 
 The login page also has one-click buttons for both accounts.
 
@@ -23,15 +23,14 @@ The login page also has one-click buttons for both accounts.
 
 ## Screenshots
 
-<!-- Add screenshots here, e.g.: -->
-<!-- ![Chat view](docs/screenshots/chat-view.png) -->
-<!-- ![Group creation](docs/screenshots/group-modal.png) -->
-<!-- ![Dark mode](docs/screenshots/dark-mode.png) -->
+![Login page](./assets/login-page.png)
+![Chat view](./assets/chat-page.png)
+![Settings page](./assets/settings-page.png)
+![Light mode](./assets/light-mode.png)
 
 ## Demo Video
 
-<!-- Add a video link or embed here, for e.g.: -->
-<!-- [Watch a walkthrough](https://your-video-link) -->
+[Watch the demo video](https://drive.google.com/file/d/1-fTYYj0EgUywjrNCZJCyxWf5rH5Eoh38/view)
 
 ## Features
 
